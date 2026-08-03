@@ -1,0 +1,37 @@
+# Project Vitalis
+
+## Sprint 0 - Health Data Pipeline
+
+### Milestone 1 - Android Bridge
+
+- [x] Create project structure
+- [x] Install Android Studio
+- [x] Create Vitalis Bridge project
+- [ ] Gradle Sync Successful
+- [ ] App builds
+- [ ] App runs on phone
+- [ ] Health Connect permissions
+- [ ] Read today's steps
+- [ ] Read sleep
+- [ ] Export JSON
+
+---
+
+## Sprint 1
+
+- [ ] SQLite Database
+- [ ] Import JSON
+- [ ] Store history
+
+---
+
+## Sprint 2
+
+- [ ] MCP Server
+- [ ] ChatGPT Integration
+
+---
+
+## Sprint 3
+
+- [ ] Health Intelligence

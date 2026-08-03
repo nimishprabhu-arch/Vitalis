@@ -1,0 +1,81 @@
+# Vitalis Architecture v1.0
+
+## Vision
+
+Vitalis is a local-first AI health companion.
+
+It collects health data from multiple sources, stores it in a standardized format, and allows AI assistants such as ChatGPT to analyze it using natural language.
+
+The architecture is divided into independent layers so that changing one component (for example, Samsung Health) does not require rebuilding the entire system.
+
+---
+
+# Layer 1 — Data Collection
+
+Responsible for collecting health information.
+
+Current planned sources:
+
+- Samsung Health (via Health Connect)
+- Blood reports (PDF)
+- Manual entries
+- Future wearable devices
+
+Output:
+
+Standardized JSON files.
+
+---
+
+# Layer 2 — Data Storage
+
+Responsible for storing data.
+
+Database:
+
+SQLite
+
+Purpose:
+
+- Historical storage
+- Fast querying
+- Version independence
+
+---
+
+# Layer 3 — Intelligence
+
+Responsible for:
+
+- Trend analysis
+- Correlations
+- Health scoring
+- Predictions
+- Recommendations
+
+---
+
+# Layer 4 — AI Interface
+
+Responsible for exposing tools to AI.
+
+Examples:
+
+- Get sleep history
+- Get workouts
+- Get heart rate
+- Compare time periods
+- Calculate trends
+
+Initially this interface will use MCP.
+
+---
+
+# Guiding Principles
+
+1. Local-first.
+2. User owns all data.
+3. Modular.
+4. Explainable.
+5. Vendor independent.
+6. Privacy first.
