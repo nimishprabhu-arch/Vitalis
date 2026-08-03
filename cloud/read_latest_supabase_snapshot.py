@@ -1,14 +1,33 @@
 import json
 import urllib.error
 import urllib.request
+from pathlib import Path
 
-SUPABASE_URL = "https://ltnlhxsdmcsjpcpxvvxl.supabase.co"
-SUPABASE_KEY = "sb_publishable_U55ZW10vDw7fX-kVmWVl0w_8nXnsrOW"
+PROJECT_DIR = Path("C:/Projects/Vitalis")
+ENV_PATH = PROJECT_DIR / ".env"
 
 
-def read_latest_snapshot():
+def load_env():
+    if not ENV_PATH.exists():
+        raise RuntimeError(f"Missing .env file: {ENV_PATH}")
+
+    values = {}
+
+    for line in ENV_PATH.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip()
+
+    return values
+
+
+def read_latest_snapshot(supabase_url, supabase_key):
     endpoint = (
-        f"{SUPABASE_URL}/rest/v1/health_snapshots"
+        f"{supabase_url}/rest/v1/health_snapshots"
         "?select=*"
         "&order=snapshot_date.desc"
         "&limit=1"
@@ -18,8 +37,8 @@ def read_latest_snapshot():
         endpoint,
         method="GET",
         headers={
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}",
         },
     )
 
@@ -32,10 +51,18 @@ def read_latest_snapshot():
 
 
 def main():
-    if "PASTE_YOUR" in SUPABASE_KEY:
-        raise RuntimeError("Paste your Supabase key before running this script.")
+    env = load_env()
 
-    rows = read_latest_snapshot()
+    supabase_url = env.get("SUPABASE_URL")
+    supabase_key = env.get("SUPABASE_KEY")
+
+    if not supabase_url:
+        raise RuntimeError("SUPABASE_URL is missing in .env")
+
+    if not supabase_key:
+        raise RuntimeError("SUPABASE_KEY is missing in .env")
+
+    rows = read_latest_snapshot(supabase_url, supabase_key)
 
     if not rows:
         print("No Supabase snapshots found.")
