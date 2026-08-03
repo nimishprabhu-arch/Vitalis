@@ -1,0 +1,13 @@
+﻿com.samsung.health.weight,7006003,12
+body_fat_mass,create_sh_ver,start_time,custom,height,weight,muscle_mass,modify_sh_ver,update_time,create_time,client_data_id,skeletal_muscle,fat_free_mass,client_data_ver,basal_metabolic_rate,time_offset,deviceuuid,skeletal_muscle_mass,comment,fat_free,pkg_name,body_fat,datauuid,vfa_level,total_body_water
+,,2020-03-03 00:51:22.563,,170.2,82.5,,,2020-03-03 00:51:28.455,2020-03-03 00:51:28.455,,,,,,UTC+0530,e/aPUWpNiJ,,,,com.sec.android.app.shealth,,6e3fc4fc-84ca-434b-9e6f-3a00312303bb,,,
+,,2020-02-11 14:49:06.243,,,85.1,,,2020-02-11 14:49:21.654,2020-02-11 14:49:21.654,,,,,,UTC+0530,e/aPUWpNiJ,,,,com.sec.android.app.shealth,,5930ff24-f06b-4fa2-a55a-2cba5800e009,,,
+,,2021-06-13 07:08:30.847,,170.2,82.5,,,2021-06-13 07:08:33.112,2021-06-13 07:08:33.112,,,,,,UTC+0530,e/aPUWpNiJ,,,,com.sec.android.app.shealth,,52757980-bcf6-4748-88c0-f1dda15fe785,,,
+,,2021-06-22 07:28:51.342,,170.2,81.8,,,2021-06-22 07:28:56.424,2021-06-22 07:28:56.424,,,,,,UTC+0530,aqfQc5yGC4,,,,com.sec.android.app.shealth,,2b2f09e6-cf86-41a4-ac95-803830607186,,,
+,,2021-07-13 13:00:42.332,,170.2,81.3,,,2021-07-13 13:00:49.488,2021-07-13 13:00:49.488,,,,,,UTC+0530,aqfQc5yGC4,,,,com.sec.android.app.shealth,,e9101497-5584-44d4-8e6a-82345b264cb5,,,
+,,2021-07-27 03:34:00.538,,170.2,80.9,,,2021-07-27 03:34:06.176,2021-07-27 03:34:06.176,,,,,,UTC+0530,aqfQc5yGC4,,,,com.sec.android.app.shealth,,2a3ec092-edbf-449d-9a8f-f02afadf31ac,,,
+,,2021-08-25 02:38:22.845,,170.2,80.5,,,2021-08-25 02:38:29.988,2021-08-25 02:38:29.988,,,,,,UTC+0530,aqfQc5yGC4,,,,com.sec.android.app.shealth,,c691153a-dcb9-4b81-ba40-7037704d05fc,,,
+,,2021-08-27 04:53:13.765,,170.2,79.9,,,2021-08-27 04:53:18.602,2021-08-27 04:53:18.602,,,,,,UTC+0530,aqfQc5yGC4,,,,com.sec.android.app.shealth,,6b27caed-e521-48d4-88e3-1d2418f8abc7,,,
+,,2021-09-12 18:16:31.930,,170.2,79.5,,,2021-09-12 18:16:36.118,2021-09-12 18:16:36.118,,,,,,UTC+0530,aqfQc5yGC4,,,,com.sec.android.app.shealth,,374b3960-0401-4f4b-8344-64d60ea03b5c,,,
+,62600630,2024-01-13 05:53:20.784,,170.2,77.0,,62600630,2024-01-13 05:53:26.417,2024-01-13 05:53:26.417,,,,,,UTC+0530,aqfQc5yGC4,,,,com.sec.android.app.shealth,,c31b980c-9544-4118-9669-151399928cba,,,
+,62600630,2024-01-18 03:33:47.837,,170.2,76.4,,62600630,2024-01-18 03:33:55.000,2024-01-18 03:33:55.000,,,,,,UTC+0530,aqfQc5yGC4,,,,com.sec.android.app.shealth,,45aaea04-79e5-472c-9ab4-d0aaafaa53ee,,,
