@@ -2,13 +2,17 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_DIR = Path("C:/Projects/Vitalis")
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+
 
 STEPS = [
-    PROJECT_DIR / "importers" / "snapshot_importer.py",
-    PROJECT_DIR / "exports" / "export_health_context.py",
-    PROJECT_DIR / "cloud" / "upload_latest_snapshot.py",
-    PROJECT_DIR / "cloud" / "export_supabase_context.py",
+    PROJECT_ROOT / "importers" / "snapshot_importer.py",
+    PROJECT_ROOT / "exports" / "export_health_context.py",
+    PROJECT_ROOT / "exports" / "export_history_context.py",
+    PROJECT_ROOT / "exports" / "export_workout_context.py",
+    PROJECT_ROOT / "cloud" / "upload_latest_snapshot.py",
+    PROJECT_ROOT / "cloud" / "export_supabase_context.py",
 ]
 
 
@@ -17,8 +21,7 @@ def run_step(script_path):
 
     result = subprocess.run(
         [sys.executable, str(script_path)],
-        cwd=PROJECT_DIR,
-        check=False,
+        cwd=PROJECT_ROOT,
     )
 
     if result.returncode != 0:
@@ -35,9 +38,13 @@ def main():
     print("--------------------------------")
     print("Vitalis daily import complete.")
     print("Local ChatGPT context file:")
-    print(PROJECT_DIR / "exports" / "vitalis_context.md")
+    print(PROJECT_ROOT / "exports" / "vitalis_context.md")
+    print("Historical ChatGPT context file:")
+    print(PROJECT_ROOT / "exports" / "vitalis_history_context.md")
+    print("Workout ChatGPT context file:")
+    print(PROJECT_ROOT / "exports" / "vitalis_workout_context.md")
     print("Cloud ChatGPT context file:")
-    print(PROJECT_DIR / "exports" / "vitalis_cloud_context.md")
+    print(PROJECT_ROOT / "exports" / "vitalis_cloud_context.md")
     print("Latest snapshot uploaded to Supabase.")
 
 
