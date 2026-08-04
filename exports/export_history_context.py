@@ -1,179 +1,245 @@
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
+
 
 PROJECT_DIR = Path("C:/Projects/Vitalis")
 DATABASE_PATH = PROJECT_DIR / "database" / "vitalis.db"
 OUTPUT_PATH = PROJECT_DIR / "exports" / "vitalis_history_context.md"
 
 
-def avg(values):
-    clean = [value for value in values if value is not None]
-    if not clean:
-        return None
-    return sum(clean) / len(clean)
+METRICS = [
+    ("Steps", "steps"),
+    ("Distance", "distance_meters"),
+    ("Active calories", "active_calories"),
+    ("Floors", "floors"),
+
+    ("Average heart rate", "average_heart_rate"),
+    ("Minimum heart rate", "minimum_heart_rate"),
+    ("Maximum heart rate", "maximum_heart_rate"),
+    ("Resting heart rate", "resting_heart_rate"),
+
+    ("Sleep duration", "sleep_total_minutes"),
+    ("Deep sleep", "deep_sleep_minutes"),
+    ("REM sleep", "rem_sleep_minutes"),
+    ("Light sleep", "light_sleep_minutes"),
+    ("Awake time", "awake_minutes"),
+    ("Sleep sessions", "sleep_session_count"),
+
+    ("Samsung Sleep Score", "sleep_score"),
+    ("Sleep efficiency", "sleep_efficiency"),
+    ("Physical recovery", "physical_recovery"),
+    ("Mental recovery", "mental_recovery"),
+
+    ("Samsung Energy Score", "energy_score"),
+    ("Energy sleep score", "energy_sleep_score"),
+    ("Energy activity score", "energy_activity_score"),
+    ("Samsung Heart Health Score", "heart_health_score"),
+
+    ("Workout sessions", "workout_session_count"),
+    ("Workout duration", "workout_total_duration_minutes"),
+]
 
 
-def fmt_number(value, decimals=0):
+def fetch_one(cursor, query, params=()):
+    return cursor.execute(query, params).fetchone()[0]
+
+
+def count_metric(cursor, column_name):
+    return fetch_one(
+        cursor,
+        f"SELECT COUNT(*) FROM daily_health_snapshots WHERE {column_name} IS NOT NULL",
+    )
+
+
+def avg_metric(cursor, column_name):
+    return fetch_one(
+        cursor,
+        f"SELECT AVG({column_name}) FROM daily_health_snapshots WHERE {column_name} IS NOT NULL",
+    )
+
+
+def min_metric(cursor, column_name):
+    return fetch_one(
+        cursor,
+        f"SELECT MIN({column_name}) FROM daily_health_snapshots WHERE {column_name} IS NOT NULL",
+    )
+
+
+def max_metric(cursor, column_name):
+    return fetch_one(
+        cursor,
+        f"SELECT MAX({column_name}) FROM daily_health_snapshots WHERE {column_name} IS NOT NULL",
+    )
+
+
+def format_number(value):
     if value is None:
         return "Unavailable"
-    return f"{value:.{decimals}f}"
+
+    if isinstance(value, float):
+        return f"{value:.2f}"
+
+    return str(value)
 
 
-def fmt_minutes(value):
-    if value is None:
-        return "Unavailable"
+def build_metric_table(cursor):
+    lines = []
+    lines.append("| Metric | Days available | Average | Minimum | Maximum |")
+    lines.append("|---|---:|---:|---:|---:|")
 
-    value = int(value)
-    hours = value // 60
-    minutes = value % 60
-    return f"{hours}h {minutes}m"
+    for label, column_name in METRICS:
+        days = count_metric(cursor, column_name)
+        average = avg_metric(cursor, column_name)
+        minimum = min_metric(cursor, column_name)
+        maximum = max_metric(cursor, column_name)
 
+        lines.append(
+            f"| {label} | {days} | {format_number(average)} | {format_number(minimum)} | {format_number(maximum)} |"
+        )
 
-def fetch_rows():
-    with sqlite3.connect(DATABASE_PATH) as connection:
-        connection.row_factory = sqlite3.Row
-        return connection.execute(
-            """
-            SELECT *
-            FROM daily_health_snapshots
-            ORDER BY snapshot_date ASC
-            """
-        ).fetchall()
+    return "\n".join(lines)
 
 
-def summarize_period(rows):
-    return {
-        "days": len(rows),
-        "avg_steps": avg([row["steps"] for row in rows]),
-        "avg_distance_meters": avg([row["distance_meters"] for row in rows]),
-        "avg_active_calories": avg([row["active_calories"] for row in rows]),
-        "avg_heart_rate": avg([row["average_heart_rate"] for row in rows]),
-        "avg_resting_heart_rate": avg([row["resting_heart_rate"] for row in rows]),
-        "avg_sleep_minutes": avg([row["sleep_total_minutes"] for row in rows]),
-        "avg_deep_sleep_minutes": avg([row["deep_sleep_minutes"] for row in rows]),
-        "avg_rem_sleep_minutes": avg([row["rem_sleep_minutes"] for row in rows]),
-        "avg_light_sleep_minutes": avg([row["light_sleep_minutes"] for row in rows]),
-    }
+def build_recent_snapshots(cursor):
+    rows = cursor.execute(
+        """
+        SELECT
+            snapshot_date,
+            steps,
+            distance_meters,
+            active_calories,
+            average_heart_rate,
+            minimum_heart_rate,
+            maximum_heart_rate,
+            resting_heart_rate,
+            sleep_total_minutes,
+            deep_sleep_minutes,
+            rem_sleep_minutes,
+            light_sleep_minutes,
+            awake_minutes,
+            sleep_score,
+            energy_score,
+            energy_sleep_score,
+            energy_activity_score
+        FROM daily_health_snapshots
+        ORDER BY snapshot_date DESC
+        LIMIT 14
+        """
+    ).fetchall()
+
+    lines = []
+    lines.append("| Date | Steps | Sleep min | Deep | REM | Light | Awake | Sleep Score | Energy Score | Avg HR |")
+    lines.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+
+    for row in rows:
+        (
+            snapshot_date,
+            steps,
+            distance_meters,
+            active_calories,
+            average_heart_rate,
+            minimum_heart_rate,
+            maximum_heart_rate,
+            resting_heart_rate,
+            sleep_total_minutes,
+            deep_sleep_minutes,
+            rem_sleep_minutes,
+            light_sleep_minutes,
+            awake_minutes,
+            sleep_score,
+            energy_score,
+            energy_sleep_score,
+            energy_activity_score,
+        ) = row
+
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    str(snapshot_date),
+                    format_number(steps),
+                    format_number(sleep_total_minutes),
+                    format_number(deep_sleep_minutes),
+                    format_number(rem_sleep_minutes),
+                    format_number(light_sleep_minutes),
+                    format_number(awake_minutes),
+                    format_number(sleep_score),
+                    format_number(energy_score),
+                    format_number(average_heart_rate),
+                ]
+            )
+            + " |"
+        )
+
+    return "\n".join(lines)
 
 
-def available_count(rows, column):
-    return sum(1 for row in rows if row[column] is not None)
+def build_context():
+    if not DATABASE_PATH.exists():
+        raise FileNotFoundError(f"Database not found: {DATABASE_PATH}")
 
+    connection = sqlite3.connect(DATABASE_PATH)
+    cursor = connection.cursor()
 
-def build_context(rows):
-    if not rows:
-        raise RuntimeError("No health data found.")
+    first_date, latest_date, total_days = cursor.execute(
+        """
+        SELECT
+            MIN(snapshot_date),
+            MAX(snapshot_date),
+            COUNT(*)
+        FROM daily_health_snapshots
+        """
+    ).fetchone()
 
-    latest = rows[-1]
-    last_30 = rows[-30:]
-    last_90 = rows[-90:]
+    generated_at = datetime.now(timezone.utc).isoformat()
 
-    all_time = summarize_period(rows)
-    summary_30 = summarize_period(last_30)
-    summary_90 = summarize_period(last_90)
+    metric_table = build_metric_table(cursor)
+    recent_snapshots = build_recent_snapshots(cursor)
 
-    return f"""# Vitalis Historical Health Context
+    connection.close()
 
-This file summarizes Nimish's historical Vitalis health data.
+    return f"""# Vitalis Health History Context
 
-## Data Coverage
+Generated at: {generated_at}
 
-First date: {rows[0]["snapshot_date"]}
-Latest date: {latest["snapshot_date"]}
-Total daily snapshots: {len(rows)}
+## Dataset Coverage
 
-## Latest Snapshot
+- First date: {first_date}
+- Latest date: {latest_date}
+- Total daily snapshots: {total_days}
 
-Date: {latest["snapshot_date"]}
+## Important Data Notes
 
-Steps: {fmt_number(latest["steps"])}
-Distance: {fmt_number(latest["distance_meters"], 1)} meters
-Active calories: {fmt_number(latest["active_calories"], 1)} kcal
+- This file summarizes Samsung Health historical export data imported into Vitalis.
+- Steps, distance, active calories, heart rate, sleep, sleep stages, Samsung Sleep Score, and Samsung Energy Score are imported where Samsung provided them.
+- Samsung Heart Health Score currently has very limited/no usable historical values in the export.
+- Resting heart rate may be limited because Samsung does not consistently expose a dedicated historical resting heart rate field in this export.
+- Some Samsung app metrics may be proprietary calculations and may not appear directly in export files.
 
-Average heart rate: {fmt_number(latest["average_heart_rate"], 1)} bpm
-Minimum heart rate: {fmt_number(latest["minimum_heart_rate"])} bpm
-Maximum heart rate: {fmt_number(latest["maximum_heart_rate"])} bpm
-Resting heart rate: {fmt_number(latest["resting_heart_rate"])} bpm
+## Metric Availability
 
-Sleep total: {fmt_minutes(latest["sleep_total_minutes"])}
-Deep sleep: {fmt_minutes(latest["deep_sleep_minutes"])}
-REM sleep: {fmt_minutes(latest["rem_sleep_minutes"])}
-Light sleep: {fmt_minutes(latest["light_sleep_minutes"])}
-Awake: {fmt_minutes(latest["awake_minutes"])}
+{metric_table}
 
-## Last 30 Days
+## Recent Daily Snapshots
 
-Days available: {summary_30["days"]}
+{recent_snapshots}
 
-Average steps: {fmt_number(summary_30["avg_steps"])}
-Average distance: {fmt_number(summary_30["avg_distance_meters"], 1)} meters
-Average active calories: {fmt_number(summary_30["avg_active_calories"], 1)} kcal
-Average heart rate: {fmt_number(summary_30["avg_heart_rate"], 1)} bpm
-Average resting heart rate: {fmt_number(summary_30["avg_resting_heart_rate"], 1)} bpm
-Average sleep: {fmt_minutes(summary_30["avg_sleep_minutes"])}
-Average deep sleep: {fmt_minutes(summary_30["avg_deep_sleep_minutes"])}
-Average REM sleep: {fmt_minutes(summary_30["avg_rem_sleep_minutes"])}
-Average light sleep: {fmt_minutes(summary_30["avg_light_sleep_minutes"])}
+## Guidance For Analysis
 
-## Last 90 Days
-
-Days available: {summary_90["days"]}
-
-Average steps: {fmt_number(summary_90["avg_steps"])}
-Average distance: {fmt_number(summary_90["avg_distance_meters"], 1)} meters
-Average active calories: {fmt_number(summary_90["avg_active_calories"], 1)} kcal
-Average heart rate: {fmt_number(summary_90["avg_heart_rate"], 1)} bpm
-Average resting heart rate: {fmt_number(summary_90["avg_resting_heart_rate"], 1)} bpm
-Average sleep: {fmt_minutes(summary_90["avg_sleep_minutes"])}
-Average deep sleep: {fmt_minutes(summary_90["avg_deep_sleep_minutes"])}
-Average REM sleep: {fmt_minutes(summary_90["avg_rem_sleep_minutes"])}
-Average light sleep: {fmt_minutes(summary_90["avg_light_sleep_minutes"])}
-
-## All-Time Averages
-
-Average steps: {fmt_number(all_time["avg_steps"])}
-Average distance: {fmt_number(all_time["avg_distance_meters"], 1)} meters
-Average active calories: {fmt_number(all_time["avg_active_calories"], 1)} kcal
-Average heart rate: {fmt_number(all_time["avg_heart_rate"], 1)} bpm
-Average resting heart rate: {fmt_number(all_time["avg_resting_heart_rate"], 1)} bpm
-Average sleep: {fmt_minutes(all_time["avg_sleep_minutes"])}
-
-## Data Availability
-
-Steps days: {available_count(rows, "steps")}
-Distance days: {available_count(rows, "distance_meters")}
-Active calorie days: {available_count(rows, "active_calories")}
-Heart rate days: {available_count(rows, "average_heart_rate")}
-Resting heart rate days: {available_count(rows, "resting_heart_rate")}
-Sleep days: {available_count(rows, "sleep_total_minutes")}
-Deep sleep days: {available_count(rows, "deep_sleep_minutes")}
-REM sleep days: {available_count(rows, "rem_sleep_minutes")}
-Light sleep days: {available_count(rows, "light_sleep_minutes")}
-
-## Known Limitations
-
-Samsung Energy Score is not yet imported.
-Samsung Sleep Score is not yet imported.
-Deep sleep may be incomplete until sleep stage importer v2 is added.
-Resting heart rate may be incomplete for historical days.
-Some Samsung-specific metrics may need separate Samsung export parsing.
-
-## Instructions for ChatGPT
-
-Use this file for trend-aware health analysis.
-Compare latest values against 30-day, 90-day, and all-time averages.
-Clearly identify missing or incomplete data.
-Do not provide medical diagnosis.
+When answering health questions:
+- Use the metric availability table to understand which metrics are reliable.
+- Distinguish measured Samsung-exported values from missing or unavailable values.
+- Prefer multi-week and multi-month trends over single-day conclusions.
+- Do not provide medical diagnosis.
+- Explain evidence clearly and mention data limitations when relevant.
 """
 
 
 def main():
-    rows = fetch_rows()
-    context = build_context(rows)
-
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    context = build_context()
     OUTPUT_PATH.write_text(context, encoding="utf-8")
-
     print(f"Exported Vitalis history context to: {OUTPUT_PATH}")
 
 
