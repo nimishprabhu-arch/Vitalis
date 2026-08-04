@@ -1,6 +1,6 @@
 # Vitalis Health History Context
 
-Generated at: 2026-08-04T09:20:07.952112+00:00
+Generated at: 2026-08-04T09:39:09.471580+00:00
 
 ## Dataset Coverage
 
@@ -11,7 +11,7 @@ Generated at: 2026-08-04T09:20:07.952112+00:00
 ## Important Data Notes
 
 - This file summarizes Samsung Health historical export data imported into Vitalis.
-- Steps, distance, active calories, heart rate, sleep, sleep stages, Samsung Sleep Score, and Samsung Energy Score are imported where Samsung provided them.
+- Steps, distance, active calories, heart rate, sleep, sleep stages, workouts, Samsung Sleep Score, and Samsung Energy Score are imported where Samsung provided them.
 - Samsung Heart Health Score currently has very limited/no usable historical values in the export.
 - Resting heart rate may be limited because Samsung does not consistently expose a dedicated historical resting heart rate field in this export.
 - Some Samsung app metrics may be proprietary calculations and may not appear directly in export files.
@@ -42,32 +42,51 @@ Generated at: 2026-08-04T09:20:07.952112+00:00
 | Energy sleep score | 727 | 89.20 | 56.47 | 100.00 |
 | Energy activity score | 727 | 71.45 | 30.04 | 99.93 |
 | Samsung Heart Health Score | 0 | Unavailable | Unavailable | Unavailable |
-| Workout sessions | 1 | 0.00 | 0 | 0 |
-| Workout duration | 1 | 0.00 | 0 | 0 |
+| Workout sessions | 1149 | 1.57 | 1 | 7 |
+| Workout duration | 1149 | 48.16 | 0.17 | 225.55 |
+
+## Workout History Summary
+
+- Total workouts: 1801
+- Workout days: 1149
+- Total workout duration minutes: 55333.80
+- Total workout calories: 423979.48
+
+| Workout type | Count |
+|---|---:|
+| Weight training | 625 |
+| Walking | 535 |
+| Other workout | 457 |
+| Exercise machine | 81 |
+| Unknown | 70 |
+| Running | 14 |
+| Indoor bike | 12 |
+| Circuit training | 7 |
 
 ## Recent Daily Snapshots
 
-| Date | Steps | Sleep min | Deep | REM | Light | Awake | Sleep Score | Energy Score | Avg HR |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 2026-08-03 | 4995 | Unavailable | Unavailable | 27 | 12 | 18 | Unavailable | 83.67 | 89.33 |
-| 2026-08-02 | 1009 | 556 | 83 | 119 | 236 | 83 | Unavailable | 81.03 | 94.08 |
-| 2026-08-01 | 5398 | Unavailable | 87 | 102 | 214 | 58 | Unavailable | 82.29 | 95.98 |
-| 2026-07-31 | 4860 | Unavailable | 69 | 120 | 221 | 50 | Unavailable | 88.57 | 98.79 |
-| 2026-07-30 | 4058 | Unavailable | 86 | 120 | 196 | 84 | Unavailable | 88.97 | 90.56 |
-| 2026-07-29 | 4590 | Unavailable | 84 | 143 | 201 | 39 | Unavailable | 93.08 | 89.08 |
-| 2026-07-28 | 7130 | Unavailable | 93 | 163 | 185 | 19 | Unavailable | 84.14 | 91.43 |
-| 2026-07-27 | 4029 | Unavailable | 105 | 139 | 166 | 46 | Unavailable | 91.07 | 88.48 |
-| 2026-07-26 | 7533 | Unavailable | 110 | 83 | 166 | 32 | Unavailable | 90.38 | 89.16 |
-| 2026-07-25 | 5674 | 452 | 82 | 119 | 220 | 31 | 75.00 | 89.53 | 93.54 |
-| 2026-07-24 | 6341 | Unavailable | 94 | 163 | 185 | 27 | Unavailable | 84.53 | 93.51 |
-| 2026-07-23 | 7750 | Unavailable | 103 | 91 | 229 | 56 | Unavailable | 88.82 | 96.63 |
-| 2026-07-22 | 7938 | Unavailable | 60 | 68 | 249 | 21 | Unavailable | 87.50 | 93.58 |
-| 2026-07-21 | 7990 | 496 | 79 | 75 | 209 | 97 | 80.00 | 90.77 | 94.15 |
+| Date | Steps | Sleep min | Deep | REM | Light | Awake | Sleep Score | Energy Score | Workouts | Workout min | Avg HR |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 2026-08-03 | 4995 | Unavailable | Unavailable | 27 | 12 | 18 | Unavailable | 83.67 | 1 | 76.22 | 89.33 |
+| 2026-08-02 | 1009 | 556 | 83 | 119 | 236 | 83 | Unavailable | 81.03 | 1 | 8.80 | 94.08 |
+| 2026-08-01 | 5398 | Unavailable | 87 | 102 | 214 | 58 | Unavailable | 82.29 | 1 | 64.07 | 95.98 |
+| 2026-07-31 | 4860 | Unavailable | 69 | 120 | 221 | 50 | Unavailable | 88.57 | 1 | 63.74 | 98.79 |
+| 2026-07-30 | 4058 | Unavailable | 86 | 120 | 196 | 84 | Unavailable | 88.97 | 2 | 80.18 | 90.56 |
+| 2026-07-29 | 4590 | Unavailable | 84 | 143 | 201 | 39 | Unavailable | 93.08 | 1 | 75.59 | 89.08 |
+| 2026-07-28 | 7130 | Unavailable | 93 | 163 | 185 | 19 | Unavailable | 84.14 | 2 | 13.26 | 91.43 |
+| 2026-07-27 | 4029 | Unavailable | 105 | 139 | 166 | 46 | Unavailable | 91.07 | 3 | 11.33 | 88.48 |
+| 2026-07-26 | 7533 | Unavailable | 110 | 83 | 166 | 32 | Unavailable | 90.38 | 7 | 60.94 | 89.16 |
+| 2026-07-25 | 5674 | 452 | 82 | 119 | 220 | 31 | 75.00 | 89.53 | 2 | 64.99 | 93.54 |
+| 2026-07-24 | 6341 | Unavailable | 94 | 163 | 185 | 27 | Unavailable | 84.53 | 1 | 68.44 | 93.51 |
+| 2026-07-23 | 7750 | Unavailable | 103 | 91 | 229 | 56 | Unavailable | 88.82 | 3 | 81.29 | 96.63 |
+| 2026-07-22 | 7938 | Unavailable | 60 | 68 | 249 | 21 | Unavailable | 87.50 | 1 | 70.20 | 93.58 |
+| 2026-07-21 | 7990 | 496 | 79 | 75 | 209 | 97 | 80.00 | 90.77 | 3 | 23.51 | 94.15 |
 
 ## Guidance For Analysis
 
 When answering health questions:
 - Use the metric availability table to understand which metrics are reliable.
+- Use workout history when analyzing fitness consistency, training load, recovery, sleep impact, and heart rate changes.
 - Distinguish measured Samsung-exported values from missing or unavailable values.
 - Prefer multi-week and multi-month trends over single-day conclusions.
 - Do not provide medical diagnosis.

@@ -101,6 +101,60 @@ def build_metric_table(cursor):
     return "\n".join(lines)
 
 
+def build_workout_summary(cursor):
+    workout_table_exists = cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM sqlite_master
+        WHERE type = 'table'
+        AND name = 'workouts'
+        """
+    ).fetchone()[0]
+
+    if workout_table_exists == 0:
+        return "Workout history has not been imported yet."
+
+    total_workouts = cursor.execute(
+        "SELECT COUNT(*) FROM workouts"
+    ).fetchone()[0]
+
+    workout_days = cursor.execute(
+        "SELECT COUNT(DISTINCT workout_date) FROM workouts"
+    ).fetchone()[0]
+
+    total_duration = cursor.execute(
+        "SELECT SUM(duration_minutes) FROM workouts WHERE duration_minutes IS NOT NULL"
+    ).fetchone()[0]
+
+    total_calories = cursor.execute(
+        "SELECT SUM(calories) FROM workouts WHERE calories IS NOT NULL"
+    ).fetchone()[0]
+
+    top_types = cursor.execute(
+        """
+        SELECT exercise_type_label, COUNT(*)
+        FROM workouts
+        GROUP BY exercise_type_label
+        ORDER BY COUNT(*) DESC
+        LIMIT 10
+        """
+    ).fetchall()
+
+    lines = []
+    lines.append(f"- Total workouts: {total_workouts}")
+    lines.append(f"- Workout days: {workout_days}")
+    lines.append(f"- Total workout duration minutes: {format_number(total_duration)}")
+    lines.append(f"- Total workout calories: {format_number(total_calories)}")
+    lines.append("")
+    lines.append("| Workout type | Count |")
+    lines.append("|---|---:|")
+
+    for workout_type, count in top_types:
+        lines.append(f"| {workout_type} | {count} |")
+
+    return "\n".join(lines)
+
+
 def build_recent_snapshots(cursor):
     rows = cursor.execute(
         """
@@ -121,7 +175,9 @@ def build_recent_snapshots(cursor):
             sleep_score,
             energy_score,
             energy_sleep_score,
-            energy_activity_score
+            energy_activity_score,
+            workout_session_count,
+            workout_total_duration_minutes
         FROM daily_health_snapshots
         ORDER BY snapshot_date DESC
         LIMIT 14
@@ -129,8 +185,8 @@ def build_recent_snapshots(cursor):
     ).fetchall()
 
     lines = []
-    lines.append("| Date | Steps | Sleep min | Deep | REM | Light | Awake | Sleep Score | Energy Score | Avg HR |")
-    lines.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+    lines.append("| Date | Steps | Sleep min | Deep | REM | Light | Awake | Sleep Score | Energy Score | Workouts | Workout min | Avg HR |")
+    lines.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
 
     for row in rows:
         (
@@ -151,6 +207,8 @@ def build_recent_snapshots(cursor):
             energy_score,
             energy_sleep_score,
             energy_activity_score,
+            workout_session_count,
+            workout_total_duration_minutes,
         ) = row
 
         lines.append(
@@ -166,6 +224,8 @@ def build_recent_snapshots(cursor):
                     format_number(awake_minutes),
                     format_number(sleep_score),
                     format_number(energy_score),
+                    format_number(workout_session_count),
+                    format_number(workout_total_duration_minutes),
                     format_number(average_heart_rate),
                 ]
             )
@@ -195,6 +255,7 @@ def build_context():
     generated_at = datetime.now(timezone.utc).isoformat()
 
     metric_table = build_metric_table(cursor)
+    workout_summary = build_workout_summary(cursor)
     recent_snapshots = build_recent_snapshots(cursor)
 
     connection.close()
@@ -212,7 +273,7 @@ Generated at: {generated_at}
 ## Important Data Notes
 
 - This file summarizes Samsung Health historical export data imported into Vitalis.
-- Steps, distance, active calories, heart rate, sleep, sleep stages, Samsung Sleep Score, and Samsung Energy Score are imported where Samsung provided them.
+- Steps, distance, active calories, heart rate, sleep, sleep stages, workouts, Samsung Sleep Score, and Samsung Energy Score are imported where Samsung provided them.
 - Samsung Heart Health Score currently has very limited/no usable historical values in the export.
 - Resting heart rate may be limited because Samsung does not consistently expose a dedicated historical resting heart rate field in this export.
 - Some Samsung app metrics may be proprietary calculations and may not appear directly in export files.
@@ -220,6 +281,10 @@ Generated at: {generated_at}
 ## Metric Availability
 
 {metric_table}
+
+## Workout History Summary
+
+{workout_summary}
 
 ## Recent Daily Snapshots
 
@@ -229,6 +294,7 @@ Generated at: {generated_at}
 
 When answering health questions:
 - Use the metric availability table to understand which metrics are reliable.
+- Use workout history when analyzing fitness consistency, training load, recovery, sleep impact, and heart rate changes.
 - Distinguish measured Samsung-exported values from missing or unavailable values.
 - Prefer multi-week and multi-month trends over single-day conclusions.
 - Do not provide medical diagnosis.
