@@ -81,17 +81,36 @@ async function getRecentRows(days: number) {
 }
 
 async function getRange() {
-  const firstRows = await supabaseGet(`${TABLE}?select=snapshot_date&order=snapshot_date.asc&limit=1`);
-  const latestRows = await supabaseGet(`${TABLE}?select=snapshot_date&order=snapshot_date.desc&limit=1`);
-  const countRows = await supabaseGet(`${TABLE}?select=snapshot_date`);
+  const firstRows = await supabaseGet(
+    "health_snapshots?select=snapshot_date&order=snapshot_date.asc&limit=1"
+  );
+
+  const latestRows = await supabaseGet(
+    "health_snapshots?select=snapshot_date&order=snapshot_date.desc&limit=1"
+  );
+
+  const countResponse = await fetch(
+    `${SUPABASE_URL}/rest/v1/health_snapshots?select=snapshot_date&limit=1`,
+    {
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        Prefer: "count=exact"
+      }
+    }
+  );
+
+  const contentRange = countResponse.headers.get("content-range");
+  const totalSnapshots = contentRange?.split("/")?.[1] ?? null;
 
   return {
     status: "ok",
     first_date: firstRows?.[0]?.snapshot_date ?? null,
     latest_date: latestRows?.[0]?.snapshot_date ?? null,
-    total_snapshots: Array.isArray(countRows) ? countRows.length : null,
+    total_snapshots: totalSnapshots ? Number(totalSnapshots) : null,
   };
 }
+
 
 async function getLatestSummary() {
   const row = await getLatestRow();
@@ -248,8 +267,119 @@ Deno.serve(async (request) => {
     const path = new URL(request.url).pathname.split("/").filter(Boolean).pop();
 
     if (path === "range") return jsonResponse(await getRange());
+	
+	if (path === "range-message") {
+  const result = await getRange();
+
+  return jsonResponse({
+    message: [
+      `first_date: ${result.first_date}`,
+      `latest_date: ${result.latest_date}`,
+      `total_snapshots: ${result.total_snapshots}`
+    ].join("\n")
+  });
+}
+	
+	
+	if (path === "range-message") {
+  const result = await getRange();
+
+  return jsonResponse({
+    message: [
+      `first_date: ${result.first_date}`,
+      `latest_date: ${result.latest_date}`,
+      `total_snapshots: ${result.total_snapshots}`
+    ].join("\n")
+  });
+}
+
+if (path === "latest-summary-message") {
+	
+	    if (path === "range") return jsonResponse(await getRange());
+
+    if (path === "range-message") {
+      const result = await getRange();
+
+      const countResponse = await fetch(`${SUPABASE_URL}/rest/v1/health_snapshots?select=snapshot_date`, {
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          Prefer: "count=exact"
+        }
+      });
+
+      const totalSnapshotsHeader = countResponse.headers.get("content-range");
+      const totalSnapshots = totalSnapshotsHeader?.split("/")?.[1] ?? result.total_snapshots;
+
+      return jsonResponse({
+        message: [
+          `first_date: ${result.first_date}`,
+          `latest_date: ${result.latest_date}`,
+          `total_snapshots: ${totalSnapshots}`
+        ].join("\n")
+      });
+    }
+
+  const result = await getLatestSummary();
+  const snapshot = result.latest_summary;
+
+  if (!snapshot) {
+    return jsonResponse({
+      message: "No latest health summary available."
+    });
+  }
+
+  return jsonResponse({
+    message: [
+      `snapshot_date: ${snapshot.snapshot_date}`,
+      `steps: ${snapshot.steps}`,
+      `distance_meters: ${snapshot.distance_meters}`,
+      `active_calories: ${snapshot.active_calories}`,
+      `average_heart_rate: ${snapshot.average_heart_rate}`,
+      `minimum_heart_rate: ${snapshot.minimum_heart_rate}`,
+      `maximum_heart_rate: ${snapshot.maximum_heart_rate}`,
+      `resting_heart_rate: ${snapshot.resting_heart_rate}`,
+      `sleep_total_minutes: ${snapshot.sleep_total_minutes}`,
+      `sleep_score: ${snapshot.sleep_score}`,
+      `energy_score: ${snapshot.energy_score}`,
+      `energy_sleep_score: ${snapshot.energy_sleep_score}`,
+      `energy_activity_score: ${snapshot.energy_activity_score}`,
+      `workout_session_count: ${snapshot.workout_session_count}`,
+      `workout_total_duration_minutes: ${snapshot.workout_total_duration_minutes}`,
+      `source: ${snapshot.source}`
+    ].join("\n")
+  });
+}
+
     if (path === "latest-summary") return jsonResponse(await getLatestSummary());
     if (path === "daily-brief") return jsonResponse(await getDailyBrief());
+
+if (path === "daily-brief-message") {
+  const result = await getDailyBrief();
+  const brief = result.daily_brief;
+
+  if (!brief) {
+    return jsonResponse({
+      message: "No daily brief available."
+    });
+  }
+
+  return jsonResponse({
+    message: [
+      `snapshot_date: ${brief.snapshot_date}`,
+      `steps: ${brief.steps}`,
+      `distance_km: ${brief.distance_km}`,
+      `active_calories: ${brief.active_calories}`,
+      `average_heart_rate: ${brief.average_heart_rate}`,
+      `energy_score: ${brief.energy_score}`,
+      `sleep_duration: ${brief.sleep_duration}`,
+      `workout_sessions: ${brief.workout_sessions}`,
+      `workout_duration: ${brief.workout_duration}`,
+      `coach_note: ${brief.coach_note}`
+    ].join("\n")
+  });
+}
+
     if (path === "training-recovery") return jsonResponse(await getTrainingRecovery());
     if (path === "last-30-training-recovery") return jsonResponse(await getLast30TrainingRecovery());
 	if (path === "last-30-training-message") {
@@ -394,7 +524,10 @@ if (path === "last-30-training-flat") {
         "/daily-brief",
         "/training-recovery",
         "/last-30-training-recovery",
-"/last-30-training-message",
+	"/range-message",
+	"/latest-summary-message",
+	"/daily-brief-message",
+	"/last-30-training-message",
       ],
     });
   } catch (error) {
