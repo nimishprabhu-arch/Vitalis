@@ -9,7 +9,7 @@ function jsonResponse(body: unknown, status = 200) {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     },
   });
 }
@@ -30,11 +30,54 @@ async function supabaseGet(path: string) {
   return await response.json();
 }
 
+async function supabaseUpsertSnapshot(snapshot: Record<string, unknown>) {
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/${TABLE}?on_conflict=snapshot_date`,
+    {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=representation",
+      },
+      body: JSON.stringify(snapshot),
+    }
+  );
+
+  const body = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Supabase ${response.status}: ${body}`);
+  }
+
+  return body ? JSON.parse(body) : [];
+}
+
 function round(value: unknown, digits = 2) {
   if (value === null || value === undefined || value === "") return null;
   const numberValue = Number(value);
   if (Number.isNaN(numberValue)) return null;
   return Number(numberValue.toFixed(digits));
+}
+
+function integerOrNull(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const numberValue = Number(value);
+  if (Number.isNaN(numberValue)) return null;
+  return Math.round(numberValue);
+}
+
+function realOrNull(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const numberValue = Number(value);
+  if (Number.isNaN(numberValue)) return null;
+  return numberValue;
+}
+
+function textOrNull(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  return String(value);
 }
 
 function formatMinutes(value: unknown) {
@@ -70,6 +113,56 @@ function sum(rows: any[], field: string) {
     .reduce((total, value) => total + value, 0);
 }
 
+function pick(payload: Record<string, unknown>, snakeName: string, camelName: string) {
+  return payload[snakeName] ?? payload[camelName] ?? null;
+}
+
+function normalizeSnapshot(payload: Record<string, unknown>) {
+  const snapshotDate = pick(payload, "snapshot_date", "date");
+  const savedAt = pick(payload, "saved_at", "savedAt") ?? new Date().toISOString();
+
+  if (!snapshotDate) {
+    throw new Error("Missing required field: snapshot_date");
+  }
+
+  return {
+    snapshot_date: textOrNull(snapshotDate),
+    saved_at: textOrNull(savedAt),
+    steps: integerOrNull(pick(payload, "steps", "steps")),
+    distance_meters: realOrNull(pick(payload, "distance_meters", "distanceMeters")),
+    active_calories: realOrNull(pick(payload, "active_calories", "activeCalories")),
+    floors: realOrNull(pick(payload, "floors", "floors")),
+    average_heart_rate: realOrNull(pick(payload, "average_heart_rate", "averageHeartRate")),
+    minimum_heart_rate: integerOrNull(pick(payload, "minimum_heart_rate", "minimumHeartRate")),
+    maximum_heart_rate: integerOrNull(pick(payload, "maximum_heart_rate", "maximumHeartRate")),
+    resting_heart_rate: integerOrNull(pick(payload, "resting_heart_rate", "restingHeartRate")),
+    sleep_total_minutes: integerOrNull(pick(payload, "sleep_total_minutes", "sleepTotalMinutes")),
+    deep_sleep_minutes: integerOrNull(pick(payload, "deep_sleep_minutes", "deepSleepMinutes")),
+    rem_sleep_minutes: integerOrNull(pick(payload, "rem_sleep_minutes", "remSleepMinutes")),
+    light_sleep_minutes: integerOrNull(pick(payload, "light_sleep_minutes", "lightSleepMinutes")),
+    awake_minutes: integerOrNull(pick(payload, "awake_minutes", "awakeMinutes")),
+    sleep_session_count: integerOrNull(pick(payload, "sleep_session_count", "sleepSessionCount")),
+    workout_session_count: integerOrNull(pick(payload, "workout_session_count", "workoutSessionCount")),
+    workout_total_duration_minutes: integerOrNull(
+      pick(payload, "workout_total_duration_minutes", "workoutTotalDurationMinutes")
+    ),
+    sleep_score: realOrNull(pick(payload, "sleep_score", "sleepScore")),
+    sleep_efficiency: realOrNull(pick(payload, "sleep_efficiency", "sleepEfficiency")),
+    physical_recovery: realOrNull(pick(payload, "physical_recovery", "physicalRecovery")),
+    mental_recovery: realOrNull(pick(payload, "mental_recovery", "mentalRecovery")),
+    energy_score: realOrNull(pick(payload, "energy_score", "energyScore")),
+    energy_sleep_score: realOrNull(pick(payload, "energy_sleep_score", "energySleepScore")),
+    energy_activity_score: realOrNull(pick(payload, "energy_activity_score", "energyActivityScore")),
+    heart_health_score: realOrNull(pick(payload, "heart_health_score", "heartHealthScore")),
+	vitalis_readiness_score: integerOrNull(pick(payload, "vitalis_readiness_score", "vitalisReadinessScore")),
+vitalis_sleep_quality_score: integerOrNull(pick(payload, "vitalis_sleep_quality_score", "vitalisSleepQualityScore")),
+vitalis_recovery_score: integerOrNull(pick(payload, "vitalis_recovery_score", "vitalisRecoveryScore")),
+vitalis_training_load_score: integerOrNull(pick(payload, "vitalis_training_load_score", "vitalisTrainingLoadScore")),
+vitalis_coach_note: textOrNull(pick(payload, "vitalis_coach_note", "vitalisCoachNote")),
+    source: textOrNull(pick(payload, "source", "source")) ?? "vitalis_android",
+  };
+}
+
 async function getLatestRow() {
   const rows = await supabaseGet(`${TABLE}?select=*&order=snapshot_date.desc&limit=1`);
   return rows?.[0] ?? null;
@@ -82,21 +175,21 @@ async function getRecentRows(days: number) {
 
 async function getRange() {
   const firstRows = await supabaseGet(
-    "health_snapshots?select=snapshot_date&order=snapshot_date.asc&limit=1"
+    `${TABLE}?select=snapshot_date&order=snapshot_date.asc&limit=1`
   );
 
   const latestRows = await supabaseGet(
-    "health_snapshots?select=snapshot_date&order=snapshot_date.desc&limit=1"
+    `${TABLE}?select=snapshot_date&order=snapshot_date.desc&limit=1`
   );
 
   const countResponse = await fetch(
-    `${SUPABASE_URL}/rest/v1/health_snapshots?select=snapshot_date&limit=1`,
+    `${SUPABASE_URL}/rest/v1/${TABLE}?select=snapshot_date&limit=1`,
     {
       headers: {
         apikey: SUPABASE_SERVICE_ROLE_KEY,
         Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        Prefer: "count=exact"
-      }
+        Prefer: "count=exact",
+      },
     }
   );
 
@@ -110,7 +203,6 @@ async function getRange() {
     total_snapshots: totalSnapshots ? Number(totalSnapshots) : null,
   };
 }
-
 
 async function getLatestSummary() {
   const row = await getLatestRow();
@@ -142,8 +234,16 @@ async function getLatestSummary() {
           energy_score: round(row.energy_score),
           energy_sleep_score: round(row.energy_sleep_score),
           energy_activity_score: round(row.energy_activity_score),
+          heart_health_score: round(row.heart_health_score),
           workout_session_count: row.workout_session_count,
           workout_total_duration_minutes: row.workout_total_duration_minutes,
+		  vitalis_readiness_score: row.vitalis_readiness_score,
+			vitalis_sleep_quality_score: row.vitalis_sleep_quality_score,
+			vitalis_recovery_score: row.vitalis_recovery_score,
+			vitalis_training_load_score: row.vitalis_training_load_score,
+			vitalis_coach_note: row.vitalis_coach_note,
+		  
+		  
           source: row.source,
         }
       : null,
@@ -248,7 +348,7 @@ async function getLast30TrainingRecovery() {
   const rows = await getRecentRows(30);
 
   if (rows.length === 0) {
-    return { status: "empty", last_30_training_recovery: null };
+    return { status: "empty", latest_health_date: null, last_30_training_recovery: null };
   }
 
   return {
@@ -256,6 +356,12 @@ async function getLast30TrainingRecovery() {
     latest_health_date: rows[0].snapshot_date,
     last_30_training_recovery: buildTrainingWindow(rows.slice(0, 30), "Last 30 days"),
   };
+}
+
+function messageResponse(lines: string[]) {
+  return jsonResponse({
+    message: lines.join("\n"),
+  });
 }
 
 Deno.serve(async (request) => {
@@ -266,255 +372,223 @@ Deno.serve(async (request) => {
   try {
     const path = new URL(request.url).pathname.split("/").filter(Boolean).pop();
 
-    if (path === "range") return jsonResponse(await getRange());
-	
-	if (path === "range-message") {
-  const result = await getRange();
+    if (request.method === "POST" && path === "upload-snapshot") {
+      const payload = await request.json();
+      const snapshot = normalizeSnapshot(payload);
+      const rows = await supabaseUpsertSnapshot(snapshot);
 
-  return jsonResponse({
-    message: [
-      `first_date: ${result.first_date}`,
-      `latest_date: ${result.latest_date}`,
-      `total_snapshots: ${result.total_snapshots}`
-    ].join("\n")
-  });
-}
-	
-	
-	if (path === "range-message") {
-  const result = await getRange();
+      return jsonResponse({
+        status: "ok",
+        message: "Snapshot uploaded.",
+        snapshot_date: snapshot.snapshot_date,
+        rows,
+      });
+    }
 
-  return jsonResponse({
-    message: [
-      `first_date: ${result.first_date}`,
-      `latest_date: ${result.latest_date}`,
-      `total_snapshots: ${result.total_snapshots}`
-    ].join("\n")
-  });
-}
+    if (request.method !== "GET") {
+      return jsonResponse(
+        {
+          status: "error",
+          message: "Method not allowed.",
+        },
+        405
+      );
+    }
 
-if (path === "latest-summary-message") {
-	
-	    if (path === "range") return jsonResponse(await getRange());
+    if (path === "range") {
+      return jsonResponse(await getRange());
+    }
 
     if (path === "range-message") {
       const result = await getRange();
 
-      const countResponse = await fetch(`${SUPABASE_URL}/rest/v1/health_snapshots?select=snapshot_date`, {
-        headers: {
-          apikey: SUPABASE_SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          Prefer: "count=exact"
-        }
-      });
+      return messageResponse([
+        `first_date: ${result.first_date}`,
+        `latest_date: ${result.latest_date}`,
+        `total_snapshots: ${result.total_snapshots}`,
+      ]);
+    }
 
-      const totalSnapshotsHeader = countResponse.headers.get("content-range");
-      const totalSnapshots = totalSnapshotsHeader?.split("/")?.[1] ?? result.total_snapshots;
+    if (path === "latest-summary") {
+      return jsonResponse(await getLatestSummary());
+    }
+
+    if (path === "latest-summary-message") {
+      const result = await getLatestSummary();
+      const snapshot = result.latest_summary;
+
+      if (!snapshot) {
+        return jsonResponse({
+          message: "No latest health summary available.",
+        });
+      }
+
+      return messageResponse([
+        `snapshot_date: ${snapshot.snapshot_date}`,
+        `steps: ${snapshot.steps}`,
+        `distance_meters: ${snapshot.distance_meters}`,
+        `active_calories: ${snapshot.active_calories}`,
+        `average_heart_rate: ${snapshot.average_heart_rate}`,
+        `minimum_heart_rate: ${snapshot.minimum_heart_rate}`,
+        `maximum_heart_rate: ${snapshot.maximum_heart_rate}`,
+        `resting_heart_rate: ${snapshot.resting_heart_rate}`,
+        `sleep_total_minutes: ${snapshot.sleep_total_minutes}`,
+        `sleep_score: ${snapshot.sleep_score}`,
+        `energy_score: ${snapshot.energy_score}`,
+        `energy_sleep_score: ${snapshot.energy_sleep_score}`,
+        `energy_activity_score: ${snapshot.energy_activity_score}`,
+        `workout_session_count: ${snapshot.workout_session_count}`,
+		`workout_total_duration_minutes: ${snapshot.workout_total_duration_minutes}`,
+		`vitalis_readiness_score: ${snapshot.vitalis_readiness_score}`,
+		`vitalis_sleep_quality_score: ${snapshot.vitalis_sleep_quality_score}`,
+		`vitalis_recovery_score: ${snapshot.vitalis_recovery_score}`,
+		`vitalis_training_load_score: ${snapshot.vitalis_training_load_score}`,
+		`vitalis_coach_note: ${snapshot.vitalis_coach_note}`,
+		`source: ${snapshot.source}`,
+      ]);
+    }
+
+    if (path === "daily-brief") {
+      return jsonResponse(await getDailyBrief());
+    }
+
+    if (path === "daily-brief-message") {
+      const result = await getDailyBrief();
+      const brief = result.daily_brief;
+
+      if (!brief) {
+        return jsonResponse({
+          message: "No daily brief available.",
+        });
+      }
+
+      return messageResponse([
+        `snapshot_date: ${brief.snapshot_date}`,
+        `steps: ${brief.steps}`,
+        `distance_km: ${brief.distance_km}`,
+        `active_calories: ${brief.active_calories}`,
+        `average_heart_rate: ${brief.average_heart_rate}`,
+        `energy_score: ${brief.energy_score}`,
+        `sleep_duration: ${brief.sleep_duration}`,
+        `workout_sessions: ${brief.workout_sessions}`,
+        `workout_duration: ${brief.workout_duration}`,
+        `coach_note: ${brief.coach_note}`,
+      ]);
+    }
+
+    if (path === "training-recovery") {
+      return jsonResponse(await getTrainingRecovery());
+    }
+
+    if (path === "last-30-training-recovery") {
+      return jsonResponse(await getLast30TrainingRecovery());
+    }
+
+    if (path === "last-30-training-message") {
+      const result = await getLast30TrainingRecovery();
+
+      if (result.status !== "ok" || !result.last_30_training_recovery) {
+        return jsonResponse({
+          message: "No last 30 days training recovery data available.",
+        });
+      }
+
+      const summary = result.last_30_training_recovery;
+
+      return messageResponse([
+        `period: ${summary.period}`,
+        `workout_days: ${summary.workout_days}`,
+        `workout_sessions: ${summary.workout_sessions}`,
+        `workout_duration: ${summary.workout_duration}`,
+        `average_sleep: ${summary.average_sleep}`,
+        `average_energy_score: ${summary.average_energy_score}`,
+        `average_heart_rate: ${summary.average_heart_rate}`,
+        `average_resting_heart_rate: ${summary.average_resting_heart_rate}`,
+        `load: ${summary.load}`,
+        `recovery: ${summary.recovery}`,
+        `vitalis_note: ${summary.vitalis_note}`,
+      ]);
+    }
+
+    if (path === "last-30-training-flat") {
+      const result = await getLast30TrainingRecovery();
+
+      if (result.status !== "ok" || !result.last_30_training_recovery) {
+        return jsonResponse({
+          status: "empty",
+          latest_health_date: result.latest_health_date ?? null,
+          period: "Last 30 days",
+          workout_days: null,
+          workout_sessions: null,
+          workout_duration: null,
+          average_sleep: null,
+          average_energy_score: null,
+          average_heart_rate: null,
+          average_resting_heart_rate: null,
+          load: null,
+          recovery: null,
+          vitalis_note: "No last 30 days training recovery data available.",
+        });
+      }
+
+      const summary = result.last_30_training_recovery;
 
       return jsonResponse({
-        message: [
-          `first_date: ${result.first_date}`,
-          `latest_date: ${result.latest_date}`,
-          `total_snapshots: ${totalSnapshots}`
-        ].join("\n")
+        status: "ok",
+        latest_health_date: result.latest_health_date,
+        period: summary.period,
+        workout_days: summary.workout_days,
+        workout_sessions: summary.workout_sessions,
+        workout_duration: summary.workout_duration,
+        average_sleep: summary.average_sleep,
+        average_energy_score: summary.average_energy_score,
+        average_heart_rate: summary.average_heart_rate,
+        average_resting_heart_rate: summary.average_resting_heart_rate,
+        load: summary.load,
+        recovery: summary.recovery,
+        vitalis_note: summary.vitalis_note,
       });
     }
 
-  const result = await getLatestSummary();
-  const snapshot = result.latest_summary;
+    if (path === "last-30-training-text") {
+      const result = await getLast30TrainingRecovery();
 
-  if (!snapshot) {
-    return jsonResponse({
-      message: "No latest health summary available."
-    });
-  }
-
-  return jsonResponse({
-    message: [
-      `snapshot_date: ${snapshot.snapshot_date}`,
-      `steps: ${snapshot.steps}`,
-      `distance_meters: ${snapshot.distance_meters}`,
-      `active_calories: ${snapshot.active_calories}`,
-      `average_heart_rate: ${snapshot.average_heart_rate}`,
-      `minimum_heart_rate: ${snapshot.minimum_heart_rate}`,
-      `maximum_heart_rate: ${snapshot.maximum_heart_rate}`,
-      `resting_heart_rate: ${snapshot.resting_heart_rate}`,
-      `sleep_total_minutes: ${snapshot.sleep_total_minutes}`,
-      `sleep_score: ${snapshot.sleep_score}`,
-      `energy_score: ${snapshot.energy_score}`,
-      `energy_sleep_score: ${snapshot.energy_sleep_score}`,
-      `energy_activity_score: ${snapshot.energy_activity_score}`,
-      `workout_session_count: ${snapshot.workout_session_count}`,
-      `workout_total_duration_minutes: ${snapshot.workout_total_duration_minutes}`,
-      `source: ${snapshot.source}`
-    ].join("\n")
-  });
-}
-
-    if (path === "latest-summary") return jsonResponse(await getLatestSummary());
-    if (path === "daily-brief") return jsonResponse(await getDailyBrief());
-
-if (path === "daily-brief-message") {
-  const result = await getDailyBrief();
-  const brief = result.daily_brief;
-
-  if (!brief) {
-    return jsonResponse({
-      message: "No daily brief available."
-    });
-  }
-
-  return jsonResponse({
-    message: [
-      `snapshot_date: ${brief.snapshot_date}`,
-      `steps: ${brief.steps}`,
-      `distance_km: ${brief.distance_km}`,
-      `active_calories: ${brief.active_calories}`,
-      `average_heart_rate: ${brief.average_heart_rate}`,
-      `energy_score: ${brief.energy_score}`,
-      `sleep_duration: ${brief.sleep_duration}`,
-      `workout_sessions: ${brief.workout_sessions}`,
-      `workout_duration: ${brief.workout_duration}`,
-      `coach_note: ${brief.coach_note}`
-    ].join("\n")
-  });
-}
-
-    if (path === "training-recovery") return jsonResponse(await getTrainingRecovery());
-    if (path === "last-30-training-recovery") return jsonResponse(await getLast30TrainingRecovery());
-	if (path === "last-30-training-message") {
-  const result = await getLast30TrainingRecovery();
-
-  if (result.status !== "ok" || !result.last_30_training_recovery) {
-    return jsonResponse({
-      message: "No last 30 days training recovery data available."
-    });
-  }
-
-  const summary = result.last_30_training_recovery;
-
-  return jsonResponse({
-    message: [
-      `period: ${summary.period}`,
-      `workout_days: ${summary.workout_days}`,
-      `workout_sessions: ${summary.workout_sessions}`,
-      `workout_duration: ${summary.workout_duration}`,
-      `average_sleep: ${summary.average_sleep}`,
-      `average_energy_score: ${summary.average_energy_score}`,
-      `average_heart_rate: ${summary.average_heart_rate}`,
-      `average_resting_heart_rate: ${summary.average_resting_heart_rate}`,
-      `load: ${summary.load}`,
-      `recovery: ${summary.recovery}`,
-      `vitalis_note: ${summary.vitalis_note}`
-    ].join("\n")
-  });
-}
-	
-	if (path === "last-30-training-message") {
-  const result = await getLast30TrainingRecovery();
-
-  if (result.status !== "ok" || !result.last_30_training_recovery) {
-    return jsonResponse({
-      message: "No last 30 days training recovery data available."
-    });
-  }
-
-  const summary = result.last_30_training_recovery;
-
-  return jsonResponse({
-    message: [
-      `period: ${summary.period}`,
-      `workout_days: ${summary.workout_days}`,
-      `workout_sessions: ${summary.workout_sessions}`,
-      `workout_duration: ${summary.workout_duration}`,
-      `average_sleep: ${summary.average_sleep}`,
-      `average_energy_score: ${summary.average_energy_score}`,
-      `average_heart_rate: ${summary.average_heart_rate}`,
-      `average_resting_heart_rate: ${summary.average_resting_heart_rate}`,
-      `load: ${summary.load}`,
-      `recovery: ${summary.recovery}`,
-      `vitalis_note: ${summary.vitalis_note}`
-    ].join("\n")
-  });
-}
-	
-	if (path === "last-30-training-text") {
-  const result = await getLast30TrainingRecovery();
-
-  if (result.status !== "ok" || !result.last_30_training_recovery) {
-    return new Response("No last 30 days training recovery data available.", {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Access-Control-Allow-Origin": "*"
+      if (result.status !== "ok" || !result.last_30_training_recovery) {
+        return new Response("No last 30 days training recovery data available.", {
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Access-Control-Allow-Origin": "*",
+          },
+        });
       }
-    });
-  }
 
-  const summary = result.last_30_training_recovery;
+      const summary = result.last_30_training_recovery;
 
-  return new Response(
-    [
-      `status: ok`,
-      `latest_health_date: ${result.latest_health_date}`,
-      `period: ${summary.period}`,
-      `workout_days: ${summary.workout_days}`,
-      `workout_sessions: ${summary.workout_sessions}`,
-      `workout_duration: ${summary.workout_duration}`,
-      `average_sleep: ${summary.average_sleep}`,
-      `average_energy_score: ${summary.average_energy_score}`,
-      `average_heart_rate: ${summary.average_heart_rate}`,
-      `average_resting_heart_rate: ${summary.average_resting_heart_rate}`,
-      `load: ${summary.load}`,
-      `recovery: ${summary.recovery}`,
-      `vitalis_note: ${summary.vitalis_note}`
-    ].join("\n"),
-    {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Access-Control-Allow-Origin": "*"
-      }
+      return new Response(
+        [
+          `status: ok`,
+          `latest_health_date: ${result.latest_health_date}`,
+          `period: ${summary.period}`,
+          `workout_days: ${summary.workout_days}`,
+          `workout_sessions: ${summary.workout_sessions}`,
+          `workout_duration: ${summary.workout_duration}`,
+          `average_sleep: ${summary.average_sleep}`,
+          `average_energy_score: ${summary.average_energy_score}`,
+          `average_heart_rate: ${summary.average_heart_rate}`,
+          `average_resting_heart_rate: ${summary.average_resting_heart_rate}`,
+          `load: ${summary.load}`,
+          `recovery: ${summary.recovery}`,
+          `vitalis_note: ${summary.vitalis_note}`,
+        ].join("\n"),
+        {
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
     }
-  );
-}
-if (path === "last-30-training-flat") {
-  const result = await getLast30TrainingRecovery();
 
-  if (result.status !== "ok" || !result.last_30_training_recovery) {
-    return jsonResponse({
-      status: "empty",
-      latest_health_date: result.latest_health_date ?? null,
-      period: "Last 30 days",
-      workout_days: null,
-      workout_sessions: null,
-      workout_duration: null,
-      average_sleep: null,
-      average_energy_score: null,
-      average_heart_rate: null,
-      average_resting_heart_rate: null,
-      load: null,
-      recovery: null,
-      vitalis_note: "No last 30 days training recovery data available.",
-    });
-  }
-
-  const summary = result.last_30_training_recovery;
-
-  return jsonResponse({
-    status: "ok",
-    latest_health_date: result.latest_health_date,
-    period: summary.period,
-    workout_days: summary.workout_days,
-    workout_sessions: summary.workout_sessions,
-    workout_duration: summary.workout_duration,
-    average_sleep: summary.average_sleep,
-    average_energy_score: summary.average_energy_score,
-    average_heart_rate: summary.average_heart_rate,
-    average_resting_heart_rate: summary.average_resting_heart_rate,
-    load: summary.load,
-    recovery: summary.recovery,
-    vitalis_note: summary.vitalis_note,
-  });
-}
     return jsonResponse({
       status: "ok",
       service: "Vitalis API",
@@ -524,10 +598,13 @@ if (path === "last-30-training-flat") {
         "/daily-brief",
         "/training-recovery",
         "/last-30-training-recovery",
-	"/range-message",
-	"/latest-summary-message",
-	"/daily-brief-message",
-	"/last-30-training-message",
+        "/range-message",
+        "/latest-summary-message",
+        "/daily-brief-message",
+        "/last-30-training-message",
+        "/last-30-training-flat",
+        "/last-30-training-text",
+        "/upload-snapshot",
       ],
     });
   } catch (error) {
