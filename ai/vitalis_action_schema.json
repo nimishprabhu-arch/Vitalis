@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Vitalis Live Health API",
-    "description": "Live API for reading Nimish's Vitalis health data from Supabase.",
-    "version": "1.1.0"
+    "description": "Live Vitalis health data API powered by Supabase.",
+    "version": "1.2.0"
   },
   "servers": [
     {
@@ -14,24 +14,10 @@
     "/range": {
       "get": {
         "operationId": "getHealthDataRange",
-        "summary": "Get available health data date range",
-        "description": "Returns the first health data date, latest health data date, and total daily snapshots available in Vitalis.",
+        "summary": "Get Vitalis health data range",
         "responses": {
           "200": {
-            "description": "Health data range",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": { "type": "string" },
-                    "first_date": { "type": ["string", "null"] },
-                    "latest_date": { "type": ["string", "null"] },
-                    "total_snapshots": { "type": ["integer", "null"] }
-                  }
-                }
-              }
-            }
+            "description": "Health data range"
           }
         }
       }
@@ -40,45 +26,90 @@
       "get": {
         "operationId": "getLatestHealthSummary",
         "summary": "Get latest Vitalis health summary",
-        "description": "Returns a compact latest daily health summary from Vitalis, including steps, sleep, heart rate, workouts, Samsung Sleep Score, and Samsung Energy Score where available.",
         "responses": {
           "200": {
-            "description": "Latest health summary",
+            "description": "Latest health summary"
+          }
+        }
+      }
+    },
+    "/daily-brief": {
+      "get": {
+        "operationId": "getDailyBrief",
+        "summary": "Get Vitalis daily coach brief",
+        "responses": {
+          "200": {
+            "description": "Daily health coach brief"
+          }
+        }
+      }
+    },
+    "/training-recovery": {
+      "get": {
+        "operationId": "getTrainingRecovery",
+        "summary": "Get Vitalis training load and recovery windows",
+        "responses": {
+          "200": {
+            "description": "Training recovery data for 7, 14, and 30 day windows"
+          }
+        }
+      }
+    },
+    "/last-30-training-recovery": {
+      "get": {
+        "operationId": "getLast30TrainingRecovery",
+        "summary": "Get last 30 days Vitalis training recovery summary",
+        "description": "Returns one flat, GPT-friendly object summarizing the last 30 days of training load and recovery.",
+        "responses": {
+          "200": {
+            "description": "Last 30 days training recovery summary",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": { "type": "string" },
-                    "latest_summary": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "latest_health_date": {
+                      "type": ["string", "null"]
+                    },
+                    "last_30_training_recovery": {
                       "type": ["object", "null"],
                       "properties": {
-                        "snapshot_date": { "type": ["string", "null"] },
-                        "saved_at": { "type": ["string", "null"] },
-                        "steps": { "type": ["integer", "null"] },
-                        "distance_meters": { "type": ["number", "null"] },
-                        "active_calories": { "type": ["number", "null"] },
-                        "floors": { "type": ["number", "null"] },
-                        "average_heart_rate": { "type": ["number", "null"] },
-                        "minimum_heart_rate": { "type": ["integer", "null"] },
-                        "maximum_heart_rate": { "type": ["integer", "null"] },
-                        "resting_heart_rate": { "type": ["integer", "null"] },
-                        "sleep_total_minutes": { "type": ["integer", "null"] },
-                        "deep_sleep_minutes": { "type": ["integer", "null"] },
-                        "rem_sleep_minutes": { "type": ["integer", "null"] },
-                        "light_sleep_minutes": { "type": ["integer", "null"] },
-                        "awake_minutes": { "type": ["integer", "null"] },
-                        "sleep_session_count": { "type": ["integer", "null"] },
-                        "sleep_score": { "type": ["number", "null"] },
-                        "sleep_efficiency": { "type": ["number", "null"] },
-                        "physical_recovery": { "type": ["number", "null"] },
-                        "mental_recovery": { "type": ["number", "null"] },
-                        "energy_score": { "type": ["number", "null"] },
-                        "energy_sleep_score": { "type": ["number", "null"] },
-                        "energy_activity_score": { "type": ["number", "null"] },
-                        "workout_session_count": { "type": ["integer", "null"] },
-                        "workout_total_duration_minutes": { "type": ["integer", "null"] },
-                        "source": { "type": ["string", "null"] }
+                        "period": {
+                          "type": "string"
+                        },
+                        "workout_days": {
+                          "type": "integer"
+                        },
+                        "workout_sessions": {
+                          "type": "integer"
+                        },
+                        "workout_duration": {
+                          "type": ["string", "null"]
+                        },
+                        "average_sleep": {
+                          "type": ["string", "null"]
+                        },
+                        "average_energy_score": {
+                          "type": ["number", "null"]
+                        },
+                        "average_heart_rate": {
+                          "type": ["number", "null"]
+                        },
+                        "average_resting_heart_rate": {
+                          "type": ["number", "null"]
+                        },
+                        "load": {
+                          "type": "string"
+                        },
+                        "recovery": {
+                          "type": "string"
+                        },
+                        "vitalis_note": {
+                          "type": "string"
+                        }
                       }
                     }
                   }
