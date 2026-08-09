@@ -352,6 +352,241 @@ async function comparePeriods(periodA: string, periodB: string) {
   };
 }
 
+function labValueText(row: Record<string, unknown>) {
+  if (row.result_text !== null && row.result_text !== undefined && row.result_text !== "") {
+    return String(row.result_text);
+  }
+
+  if (row.value === null || row.value === undefined || row.value === "") {
+    return "Unavailable";
+  }
+
+  return `${row.value}${row.unit ? ` ${row.unit}` : ""}`;
+}
+
+async function getLatestLabsSummaryMessage() {
+  const importantMarkers = [
+    "Hemoglobin",
+    "HbA1c",
+    "Fasting Blood Sugar",
+    "Post Prandial Blood Sugar",
+    "Total Cholesterol",
+    "HDL",
+    "LDL",
+    "Triglycerides",
+    "Creatinine",
+    "Uric Acid",
+    "Bilirubin",
+    "Alkaline Phosphatase",
+    "HBsAg",
+  ];
+
+  const rows = await supabaseGet(
+    "medical_lab_results?select=test_date,canonical_marker,value,result_text,unit,reference_low,reference_high,flag,category,source_file&order=test_date.desc"
+  );
+
+  const latestByMarker = new Map();
+
+  for (const marker of importantMarkers) {
+    const latest = rows.find((row: any) => {
+      const hasNumericValue = row.value !== null && row.value !== undefined;
+      const hasTextValue = row.result_text !== null && row.result_text !== undefined && String(row.result_text).trim() !== "";
+
+      return row.canonical_marker === marker && (hasNumericValue || hasTextValue);
+    });
+
+    latestByMarker.set(marker, latest ?? null);
+  }
+
+  const lines = [
+    "latest_lab_summary: latest available non-empty value per marker",
+    "",
+  ];
+
+  for (const marker of importantMarkers) {
+    const row = latestByMarker.get(marker);
+
+    if (!row) {
+      lines.push(`${marker}: Unavailable`);
+      continue;
+    }
+
+    const result = row.value !== null && row.value !== undefined
+      ? `${round(row.value)}${row.unit ? ` ${row.unit}` : ""}`
+      : row.result_text;
+
+    const reference = row.reference_low !== null && row.reference_high !== null
+      ? `${row.reference_low}-${row.reference_high}`
+      : "Unavailable";
+
+    lines.push(
+      `${marker}: ${result}; date: ${row.test_date}; reference: ${reference}; flag: ${row.flag ?? "Unavailable"}; source_file: ${row.source_file}`
+    );
+  }
+
+  lines.push("");
+  lines.push("note: This summary skips empty placeholder rows and uses the latest real parsed lab value for each marker.");
+
+  return messageResponse(lines);
+}
+
+async function getLatestLabsMessage() {
+  const rows = await supabaseGet(
+    "medical_lab_results?select=test_date,panel,marker,raw_marker,canonical_marker,category,value,result_text,unit,reference_low,reference_high,flag,source_file&order=test_date.desc,canonical_marker.asc&limit=30"
+  );
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return {
+      message: "No medical lab results available."
+    };
+  }
+
+  const latestDate = rows[0]?.test_date ?? "unknown";
+
+  const lines = [
+    `latest_lab_date: ${latestDate}`,
+    `lab_rows_returned: ${rows.length}`,
+    ""
+  ];
+
+  for (const row of rows) {
+    const reference =
+      row.reference_low !== null || row.reference_high !== null
+        ? `${row.reference_low ?? ""}-${row.reference_high ?? ""}`
+        : "Unavailable";
+
+    lines.push(
+      `marker: ${row.canonical_marker ?? row.marker}; raw_marker: ${row.raw_marker ?? row.marker}; category: ${row.category ?? row.panel}; result: ${labValueText(row)}; reference: ${reference}; flag: ${row.flag}; source_file: ${row.source_file}`
+    );
+  }
+
+  return {
+    message: lines.join("\n")
+  };
+}
+
+async function getLabRowsForPeriod(period: string) {
+  const range = parsePeriod(period);
+
+  const rows = await supabaseGet(
+    `medical_lab_results?select=test_date,panel,marker,raw_marker,canonical_marker,category,value,result_text,unit,reference_low,reference_high,flag,source_file&test_date=gte.${range.start}&test_date=lte.${range.end}&order=test_date.asc,category.asc,canonical_marker.asc`
+  );
+
+  return {
+    period,
+    start: range.start,
+    end: range.end,
+    rows: rows ?? [],
+  };
+}
+
+function labMarkerName(row: Record<string, unknown>) {
+  return String(row.canonical_marker ?? row.marker ?? "Unknown");
+}
+
+function labCategoryName(row: Record<string, unknown>) {
+  return String(row.category ?? row.panel ?? "Uncategorized");
+}
+
+async function getLabsByPeriodMessage(period: string) {
+  const result = await getLabRowsForPeriod(period);
+  const rows = result.rows;
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return {
+      message: `No lab results found for period: ${period}`,
+    };
+  }
+
+  const lines = [
+    `period: ${period}`,
+    `period_range: ${result.start}..${result.end}`,
+    `lab_rows: ${rows.length}`,
+    "",
+  ];
+
+  for (const row of rows) {
+    const reference =
+      row.reference_low !== null || row.reference_high !== null
+        ? `${row.reference_low ?? ""}-${row.reference_high ?? ""}`
+        : "Unavailable";
+
+    lines.push(
+      `date: ${row.test_date}; marker: ${labMarkerName(row)}; raw_marker: ${row.raw_marker ?? row.marker}; category: ${labCategoryName(row)}; result: ${labValueText(row)}; reference: ${reference}; flag: ${row.flag}; source_file: ${row.source_file}`
+    );
+  }
+
+  lines.push("");
+  lines.push("note: Lab parsing is automated. Important results should be verified against the original PDF report.");
+
+  return {
+    message: lines.join("\n"),
+  };
+}
+
+async function compareLabsMessage(periodA: string, periodB: string) {
+  const resultA = await getLabRowsForPeriod(periodA);
+  const resultB = await getLabRowsForPeriod(periodB);
+
+  const rowsA = Array.isArray(resultA.rows) ? resultA.rows : [];
+  const rowsB = Array.isArray(resultB.rows) ? resultB.rows : [];
+
+  const latestByMarkerA = new Map<string, Record<string, unknown>>();
+  const latestByMarkerB = new Map<string, Record<string, unknown>>();
+
+  for (const row of rowsA) {
+    latestByMarkerA.set(labMarkerName(row), row);
+  }
+
+  for (const row of rowsB) {
+    latestByMarkerB.set(labMarkerName(row), row);
+  }
+
+  const markers = Array.from(
+    new Set([...latestByMarkerA.keys(), ...latestByMarkerB.keys()])
+  ).sort();
+
+  const lines = [
+    `period_a: ${periodA}`,
+    `period_b: ${periodB}`,
+    `period_a_range: ${resultA.start}..${resultA.end}`,
+    `period_b_range: ${resultB.start}..${resultB.end}`,
+    `period_a_lab_rows: ${rowsA.length}`,
+    `period_b_lab_rows: ${rowsB.length}`,
+    "",
+  ];
+
+  for (const marker of markers) {
+    const rowA = latestByMarkerA.get(marker);
+    const rowB = latestByMarkerB.get(marker);
+
+    const valueA = rowA ? labValueText(rowA) : "Unavailable";
+    const valueB = rowB ? labValueText(rowB) : "Unavailable";
+
+    const numericA = rowA?.value === null || rowA?.value === undefined ? null : Number(rowA.value);
+    const numericB = rowB?.value === null || rowB?.value === undefined ? null : Number(rowB.value);
+
+    const change =
+      numericA !== null &&
+      numericB !== null &&
+      !Number.isNaN(numericA) &&
+      !Number.isNaN(numericB)
+        ? round(numericB - numericA)
+        : "Unavailable";
+
+    lines.push(
+      `marker: ${marker}; period_a_result: ${valueA}; period_b_result: ${valueB}; numeric_change: ${change}; category: ${labCategoryName(rowB ?? rowA ?? {})}`
+    );
+  }
+
+  lines.push("");
+  lines.push("note: Lab comparison uses latest available result per marker inside each period.");
+
+  return {
+    message: lines.join("\n"),
+  };
+}
+
 async function getLatestSummary() {
   const row = await getLatestRow();
 
@@ -603,8 +838,47 @@ Deno.serve(async (request) => {
 
       return messageResponse(snapshotMessageLines(result.snapshot));
     }
+	
+	if (path === "latest-labs-summary-message") return await getLatestLabsSummaryMessage();
 
-    if (path === "latest-summary-message") {
+   if (path === "latest-labs-message") return jsonResponse(await getLatestLabsMessage());
+   
+       if (path === "labs-by-period-message") {
+      const period = new URL(request.url).searchParams.get("period");
+
+      if (!period) {
+        return messageResponse([
+          "error: missing period parameter",
+          "examples:",
+          "/labs-by-period-message?period=2022-10-25",
+          "/labs-by-period-message?period=2022-10",
+          "/labs-by-period-message?period=2022",
+          "/labs-by-period-message?period=2022-01-01..2022-12-31",
+        ]);
+      }
+
+      return jsonResponse(await getLabsByPeriodMessage(period));
+    }
+
+    if (path === "compare-labs-message") {
+      const url = new URL(request.url);
+      const periodA = url.searchParams.get("period_a");
+      const periodB = url.searchParams.get("period_b");
+
+      if (!periodA || !periodB) {
+        return messageResponse([
+          "error: missing period_a or period_b",
+          "examples:",
+          "/compare-labs-message?period_a=2022&period_b=2023",
+          "/compare-labs-message?period_a=2022-10-25&period_b=2023-12-14",
+        ]);
+      }
+
+      return jsonResponse(await compareLabsMessage(periodA, periodB));
+    }
+   
+   
+	if (path === "latest-summary-message") {
       const result = await getLatestSummary();
       const snapshot = result.latest_summary;
 

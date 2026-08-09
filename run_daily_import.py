@@ -16,6 +16,9 @@ STEPS = [
     PROJECT_ROOT / "exports" / "export_daily_brief.py",
     PROJECT_ROOT / "cloud" / "upload_latest_snapshot.py",
     PROJECT_ROOT / "cloud" / "export_supabase_context.py",
+	PROJECT_ROOT / "importers" / "medical_lab_importer.py",
+	PROJECT_ROOT / "importers" / "parse_medical_report_text.py",
+	PROJECT_ROOT / "exports" / "export_medical_context.py",
 ]
 
 

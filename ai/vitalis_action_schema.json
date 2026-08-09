@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Vitalis Live Health API",
-    "description": "Live Vitalis health data API powered by Supabase.",
-    "version": "1.2.0"
+    "description": "Live Vitalis health, training, and medical lab data API powered by Supabase.",
+    "version": "1.3.0"
   },
   "servers": [
     {
@@ -11,113 +11,267 @@
     }
   ],
   "paths": {
-    "/range": {
+    "/range-message": {
       "get": {
-        "operationId": "getHealthDataRange",
-        "summary": "Get Vitalis health data range",
+        "operationId": "getHealthRangeMessage",
+        "summary": "Get Vitalis health data date range as text",
         "responses": {
           "200": {
-            "description": "Health data range"
-          }
-        }
-      }
-    },
-    "/latest-summary": {
-      "get": {
-        "operationId": "getLatestHealthSummary",
-        "summary": "Get latest Vitalis health summary",
-        "responses": {
-          "200": {
-            "description": "Latest health summary"
-          }
-        }
-      }
-    },
-    "/daily-brief": {
-      "get": {
-        "operationId": "getDailyBrief",
-        "summary": "Get Vitalis daily coach brief",
-        "responses": {
-          "200": {
-            "description": "Daily health coach brief"
-          }
-        }
-      }
-    },
-    "/training-recovery": {
-      "get": {
-        "operationId": "getTrainingRecovery",
-        "summary": "Get Vitalis training load and recovery windows",
-        "responses": {
-          "200": {
-            "description": "Training recovery data for 7, 14, and 30 day windows"
-          }
-        }
-      }
-    },
-    "/last-30-training-recovery": {
-      "get": {
-        "operationId": "getLast30TrainingRecovery",
-        "summary": "Get last 30 days Vitalis training recovery summary",
-        "description": "Returns one flat, GPT-friendly object summarizing the last 30 days of training load and recovery.",
-        "responses": {
-          "200": {
-            "description": "Last 30 days training recovery summary",
+            "description": "Health data range message",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string"
-                    },
-                    "latest_health_date": {
-                      "type": ["string", "null"]
-                    },
-                    "last_30_training_recovery": {
-                      "type": ["object", "null"],
-                      "properties": {
-                        "period": {
-                          "type": "string"
-                        },
-                        "workout_days": {
-                          "type": "integer"
-                        },
-                        "workout_sessions": {
-                          "type": "integer"
-                        },
-                        "workout_duration": {
-                          "type": ["string", "null"]
-                        },
-                        "average_sleep": {
-                          "type": ["string", "null"]
-                        },
-                        "average_energy_score": {
-                          "type": ["number", "null"]
-                        },
-                        "average_heart_rate": {
-                          "type": ["number", "null"]
-                        },
-                        "average_resting_heart_rate": {
-                          "type": ["number", "null"]
-                        },
-                        "load": {
-                          "type": "string"
-                        },
-                        "recovery": {
-                          "type": "string"
-                        },
-                        "vitalis_note": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
           }
         }
+      }
+    },
+    "/latest-summary-message": {
+      "get": {
+        "operationId": "getLatestSummaryMessage",
+        "summary": "Get latest Vitalis health snapshot as text",
+        "responses": {
+          "200": {
+            "description": "Latest health snapshot message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/daily-brief-message": {
+      "get": {
+        "operationId": "getDailyBriefMessage",
+        "summary": "Get latest Vitalis daily coach brief as text",
+        "responses": {
+          "200": {
+            "description": "Daily coach brief message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/last-30-training-message": {
+      "get": {
+        "operationId": "getLast30TrainingMessage",
+        "summary": "Get last 30 days training and recovery message",
+        "responses": {
+          "200": {
+            "description": "Last 30 days training recovery message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/snapshot-message": {
+      "get": {
+        "operationId": "getSnapshotMessage",
+        "summary": "Get Vitalis health snapshot for a specific date",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "description": "Date in YYYY-MM-DD format.",
+            "schema": {
+              "type": "string",
+              "example": "2026-08-08"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Date-specific health snapshot message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compare-periods-message": {
+      "get": {
+        "operationId": "compareHealthPeriodsMessage",
+        "summary": "Compare Vitalis health data across two dates, months, years, or ranges",
+        "parameters": [
+          {
+            "name": "period_a",
+            "in": "query",
+            "required": true,
+            "description": "First period. Supports YYYY-MM-DD, YYYY-MM, YYYY, or YYYY-MM-DD..YYYY-MM-DD.",
+            "schema": {
+              "type": "string",
+              "example": "2026-08-01..2026-08-07"
+            }
+          },
+          {
+            "name": "period_b",
+            "in": "query",
+            "required": true,
+            "description": "Second period. Supports YYYY-MM-DD, YYYY-MM, YYYY, or YYYY-MM-DD..YYYY-MM-DD.",
+            "schema": {
+              "type": "string",
+              "example": "2026-08-08..2026-08-14"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Health period comparison message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/latest-labs-message": {
+      "get": {
+        "operationId": "getLatestLabsMessage",
+        "summary": "Get latest available medical lab rows as text",
+        "responses": {
+          "200": {
+            "description": "Latest lab results message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/latest-labs-summary-message": {
+      "get": {
+        "operationId": "getLatestLabsSummaryMessage",
+        "summary": "Get latest medical lab summary as text",
+        "responses": {
+          "200": {
+            "description": "Latest lab summary message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/labs-by-period-message": {
+      "get": {
+        "operationId": "getLabsByPeriodMessage",
+        "summary": "Get medical lab results for a date, month, year, or custom date range",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "required": true,
+            "description": "Period to search. Supports YYYY-MM-DD, YYYY-MM, YYYY, or YYYY-MM-DD..YYYY-MM-DD.",
+            "schema": {
+              "type": "string",
+              "example": "2022-10-25"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medical labs for selected period",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compare-labs-message": {
+      "get": {
+        "operationId": "compareLabsMessage",
+        "summary": "Compare medical lab results across two dates, months, years, or ranges",
+        "parameters": [
+          {
+            "name": "period_a",
+            "in": "query",
+            "required": true,
+            "description": "First period. Supports YYYY-MM-DD, YYYY-MM, YYYY, or YYYY-MM-DD..YYYY-MM-DD.",
+            "schema": {
+              "type": "string",
+              "example": "2022"
+            }
+          },
+          {
+            "name": "period_b",
+            "in": "query",
+            "required": true,
+            "description": "Second period. Supports YYYY-MM-DD, YYYY-MM, YYYY, or YYYY-MM-DD..YYYY-MM-DD.",
+            "schema": {
+              "type": "string",
+              "example": "2023"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medical lab comparison message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Plain text response generated by the Vitalis API."
+          }
+        },
+        "required": ["message"],
+        "additionalProperties": true
       }
     }
   }

@@ -1,0 +1,409 @@
+import re
+import sqlite3
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from medical.lab_marker_dictionary import canonicalize_marker
+
+DATABASE_PATH = ROOT / "database" / "vitalis.db"
+PROCESSED_REPORTS_DIR = ROOT / "data" / "medical_reports" / "processed"
+
+KNOWN_MARKERS = [
+    ("Glucose", "Fasting Blood Sugar"),
+    ("Glucose", "Post Prandial Blood Sugar"),
+    ("Glucose", "HbA1c"),
+    ("Glucose", "Estimated Average Glucose"),
+
+    ("Lipids", "Total Cholesterol"),
+    ("Lipids", "HDL"),
+    ("Lipids", "LDL"),
+    ("Lipids", "Triglycerides"),
+    ("Lipids", "VLDL"),
+    ("Lipids", "Cholesterol/HDL Ratio"),
+    ("Lipids", "LDL/HDL Ratio"),
+
+    ("Liver", "ALT"),
+    ("Liver", "AST"),
+    ("Liver", "GGT"),
+    ("Liver", "Alkaline Phosphatase"),
+    ("Liver", "Bilirubin"),
+
+    ("CBC", "Hemoglobin"),
+    ("CBC", "RBC"),
+    ("CBC", "Hematocrit"),
+    ("CBC", "MCV"),
+    ("CBC", "MCH"),
+    ("CBC", "MCHC"),
+    ("CBC", "RDW"),
+    ("CBC", "WBC"),
+    ("CBC", "Platelet Count"),
+
+
+
+    ("Kidney", "Creatinine"),
+    ("Kidney", "Urea"),
+    ("Kidney", "Uric Acid"),
+
+    ("Thyroid", "TSH"),
+    ("Thyroid", "T3"),
+    ("Thyroid", "T4"),
+
+    ("Vitamins", "Vitamin D"),
+    ("Vitamins", "Vitamin B12"),
+]
+
+QUALITATIVE_MARKERS = [
+    ("Infectious Disease", "HBsAg"),
+    ("Urine", "Fasting Urine Sugar"),
+    ("Urine", "Post Prandial Urine Sugar"),
+    ("Urine", "Fasting Urine Aceton"),
+    ("Urine", "Post Prandial Urine Acetone"),
+]
+
+DATE_PATTERNS = [
+    re.compile(r"Registration Date\s*&\s*Time:\s*(\d{2}/\d{2}/\d{4})", re.IGNORECASE),
+    re.compile(r"Reporting Date\s*&\s*Time:\s*(\d{2}/\d{2}/\d{4})", re.IGNORECASE),
+    re.compile(r"(\d{2}/\d{2}/\d{4})"),
+]
+
+
+def clean_text(value):
+    value = (value or "").strip()
+
+    if not value:
+        return None
+
+    replacements = {
+        "mg/dLDesirable": "mg/dL",
+        "mg/dLOptimal": "mg/dL",
+        "mg/dLFavourable": "mg/dL",
+        "mg/dLNormal": "mg/dL",
+        "mg/dlDesirable": "mg/dl",
+        "mg/dlOptimal": "mg/dl",
+        "mg/dlFavourable": "mg/dl",
+        "mg/dlNormal": "mg/dl",
+        "%NormaL": "%",
+        "%Normal": "%",
+        "up": "",
+        "LDL": "",
+    }
+
+    for old, new in replacements.items():
+        value = value.replace(old, new)
+
+    value = value.strip()
+    return value if value else None
+
+
+def parse_report_date(text):
+    for pattern in DATE_PATTERNS:
+        match = pattern.search(text)
+        if match:
+            raw_date = match.group(1)
+            try:
+                return datetime.strptime(raw_date, "%d/%m/%Y").date().isoformat()
+            except ValueError:
+                continue
+
+    return None
+
+
+def parse_float(value):
+    value = clean_text(value)
+    if not value:
+        return None
+
+    value = value.replace(",", "")
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
+def marker_regex(marker):
+    marker_patterns = {
+        "Fasting Blood Sugar": r"Fasting\s+Blood\s+Sugar",
+        "Post Prandial Blood Sugar": r"Post\s+Prandial\s+Blood\s+Sugar",
+        "HbA1c": r"(?:Glycosylated\s+HB\s*\(\s*HbA1C\s*\)|HbA1C|Glycosylated\s+Haemoglobin|Glycosylated\s+Hemoglobin)",
+        "Estimated Average Glucose": r"Estimated\s+Average\s+Glucose",
+        "Total Cholesterol": r"(?<!HDL - )(?<!LDL - )\bCholesterol\b",
+        "Triglycerides": r"Triglycerides?",
+        "HDL": r"HDL\s*-?\s*Cholesterol",
+        "LDL": r"LDL\s*-?\s*Cholesterol",
+        "VLDL": r"\bVLDL\b",
+        "Cholesterol/HDL Ratio": r"Cholesterol\s*/\s*HDL\s+Ratio",
+        "LDL/HDL Ratio": r"LDL\s*/\s*HDL\s+Ratio",
+
+        "Hemoglobin": r"(?:Haemoglobin|Hemoglobin|Hb)",
+        "WBC": r"(?:Total\s+WBC\s+Count|WBC\s+Count|WBC|White\s+Blood\s+Cells|Total\s+Leu[ck]ocyte\s+Count|TLC)",
+        "RBC": r"(?:RBC\s+Count|RBC|Red\s+Blood\s+Cells|Red\s+Blood\s+Cell\s+Count)",
+        "Platelet Count": r"(?:Platelets\s+Count|Platelet\s+Count|Platelets|Platelet)",
+        "Hematocrit": r"(?:HCT|Haematocrit|Hematocrit|PCV)",
+        "MCV": r"\bMCV\b",
+        "MCH": r"\bMCH\b",
+        "MCHC": r"\bMCHC\b",
+        "RDW": r"\bRDW\b",
+
+        "AST": r"(?:AST|SGOT)",
+        "ALT": r"(?:ALT|SGPT)",
+        "GGT": r"(?:GGT|Gamma\s*GT|Gamma\s+Glutamyl\s+Transferase)",
+        "Alkaline Phosphatase": r"(?:Alkaline\s+Phosphatase|ALP)",
+        "Bilirubin": r"(?:Total\s+)?Bilirubin",
+        "Direct Bilirubin": r"Direct\s+Bilirubin",
+        "Indirect Bilirubin": r"Indirect\s+Bilirubin",
+        "Total Protein": r"Total\s+Protein",
+        "Albumin": r"Albumin",
+        "Globulin": r"Globulin",
+
+        "Creatinine": r"(?:Serum\s+)?Creatinine",
+        "Urea": r"(?:Blood\s+)?Urea",
+        "Uric Acid": r"Uric\s+Acid",
+        "BUN": r"(?:BUN|Blood\s+Urea\s+Nitrogen)",
+        "eGFR": r"(?:eGFR|e-GFR)",
+
+        "TSH": r"(?:TSH|Thyroid\s+Stimulating\s+Hormone)",
+        "T3": r"(?:Total\s+)?T3",
+        "T4": r"(?:Total\s+)?T4",
+        "Free T3": r"(?:Free\s+T3|FT3)",
+        "Free T4": r"(?:Free\s+T4|FT4)",
+
+        "Vitamin D": r"(?:Vitamin\s+D|25\s*-?\s*Hydroxy\s+Vitamin\s+D|25\s*-?\s*OH\s+Vitamin\s+D)",
+        "Vitamin B12": r"(?:Vitamin\s+B12|B12)",
+    }
+
+    marker_pattern = marker_patterns.get(marker, re.escape(marker))
+
+    return re.compile(
+        rf"{marker_pattern}\s*:?\s*([<>]?\s*\d+(?:\.\d+)?)\s*([a-zA-Z/%µ\.]+)?",
+        flags=re.IGNORECASE,
+    )
+    marker_pattern = marker_patterns.get(marker, re.escape(marker))
+
+    return re.compile(
+        rf"{marker_pattern}\s*:?\s*([<>]?\s*\d+(?:\.\d+)?)\s*([a-zA-Z/%µ\.]+)?",
+        flags=re.IGNORECASE,
+    )
+
+def qualitative_marker_regex(marker):
+    escaped = r"(?:Australia\s+antigen\s*\(\s*HbsAg\s*\)|HBsAg)"
+    return re.compile(
+        rf"{escaped}\s*:?\s*(Negative|Positive|Absent|Present|Trace|No Sample)",
+        flags=re.IGNORECASE,
+    )
+
+
+def find_reference_range(text, start_index):
+    nearby_text = text[start_index : start_index + 120]
+    match = re.search(r"(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)", nearby_text)
+
+    if not match:
+        return None, None
+
+    return parse_float(match.group(1)), parse_float(match.group(2))
+
+
+def calculate_flag(value, reference_low, reference_high):
+    if value is None:
+        return None
+
+    if reference_low is not None and value < reference_low:
+        return "low"
+
+    if reference_high is not None and value > reference_high:
+        return "high"
+
+    return "normal"
+
+
+def create_table(connection):
+    connection.execute(
+        """
+        create table if not exists medical_lab_results (
+            id integer primary key autoincrement,
+            test_date text not null,
+            panel text,
+            marker text not null,
+            value real,
+            result_text text,
+            unit text,
+            reference_low real,
+            reference_high real,
+            flag text,
+            source_file text,
+            notes text,
+            imported_at text not null,
+            raw_marker text,
+            canonical_marker text,
+            category text,
+            unique(test_date, marker, source_file)
+        )
+        """
+    )
+
+    ensure_column(connection, "result_text", "text")
+    ensure_column(connection, "raw_marker", "text")
+    ensure_column(connection, "canonical_marker", "text")
+    ensure_column(connection, "category", "text")
+
+
+def ensure_column(connection, column_name, column_type):
+    columns = [row[1] for row in connection.execute("pragma table_info(medical_lab_results)")]
+
+    if column_name not in columns:
+        connection.execute(f"alter table medical_lab_results add column {column_name} {column_type}")
+
+
+def parse_report_file(path):
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    compact_text = re.sub(r"\s+", " ", text)
+    test_date = parse_report_date(compact_text)
+
+    if not test_date:
+        return []
+
+    source_file = path.name.replace(".txt", ".pdf")
+    results = []
+
+    for panel, raw_marker in KNOWN_MARKERS:
+        pattern = marker_regex(raw_marker)
+
+        for match in pattern.finditer(compact_text):
+            value = parse_float(match.group(1))
+            unit = clean_text(match.group(2))
+            reference_low, reference_high = find_reference_range(compact_text, match.end())
+            flag = calculate_flag(value, reference_low, reference_high)
+            canonical_marker, category = canonicalize_marker(raw_marker, panel)
+
+            results.append(
+                {
+                    "test_date": test_date,
+                    "panel": panel,
+                    "marker": raw_marker,
+                    "raw_marker": raw_marker,
+                    "canonical_marker": canonical_marker,
+                    "category": category,
+                    "value": value,
+                    "result_text": None,
+                    "unit": unit,
+                    "reference_low": reference_low,
+                    "reference_high": reference_high,
+                    "flag": flag,
+                    "source_file": source_file,
+                    "notes": "parsed_from_pdf_text",
+                }
+            )
+
+    for panel, raw_marker in QUALITATIVE_MARKERS:
+        pattern = qualitative_marker_regex(raw_marker)
+
+        for match in pattern.finditer(compact_text):
+            result_text = match.group(1).strip()
+            canonical_marker, category = canonicalize_marker(raw_marker, panel)
+
+            results.append(
+                {
+                    "test_date": test_date,
+                    "panel": panel,
+                    "marker": raw_marker,
+                    "raw_marker": raw_marker,
+                    "canonical_marker": canonical_marker,
+                    "category": category,
+                    "value": None,
+                    "result_text": result_text,
+                    "unit": None,
+                    "reference_low": None,
+                    "reference_high": None,
+                    "flag": result_text,
+                    "source_file": source_file,
+                    "notes": "parsed_from_pdf_text",
+                }
+            )
+
+    return results
+
+
+def save_results(results):
+    imported_at = datetime.now(timezone.utc).isoformat()
+
+    with sqlite3.connect(DATABASE_PATH) as connection:
+        create_table(connection)
+
+        for row in results:
+            connection.execute(
+                """
+                insert into medical_lab_results (
+                    test_date,
+                    panel,
+                    marker,
+                    raw_marker,
+                    canonical_marker,
+                    category,
+                    value,
+                    result_text,
+                    unit,
+                    reference_low,
+                    reference_high,
+                    flag,
+                    source_file,
+                    notes,
+                    imported_at
+                )
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                on conflict(test_date, marker, source_file)
+                do update set
+                    panel = excluded.panel,
+                    raw_marker = excluded.raw_marker,
+                    canonical_marker = excluded.canonical_marker,
+                    category = excluded.category,
+                    value = excluded.value,
+                    result_text = excluded.result_text,
+                    unit = excluded.unit,
+                    reference_low = excluded.reference_low,
+                    reference_high = excluded.reference_high,
+                    flag = excluded.flag,
+                    notes = excluded.notes,
+                    imported_at = excluded.imported_at
+                """,
+                (
+                    row["test_date"],
+                    row["panel"],
+                    row["marker"],
+                    row["raw_marker"],
+                    row["canonical_marker"],
+                    row["category"],
+                    row["value"],
+                    row["result_text"],
+                    row["unit"],
+                    row["reference_low"],
+                    row["reference_high"],
+                    row["flag"],
+                    row["source_file"],
+                    row["notes"],
+                    imported_at,
+                ),
+            )
+
+        connection.commit()
+
+
+def parse_all_reports():
+    if not PROCESSED_REPORTS_DIR.exists():
+        raise FileNotFoundError(f"Processed reports folder not found: {PROCESSED_REPORTS_DIR}")
+
+    all_results = []
+
+    for path in sorted(PROCESSED_REPORTS_DIR.glob("*.txt")):
+        all_results.extend(parse_report_file(path))
+
+    save_results(all_results)
+
+    print("Medical report parsing complete.")
+    print(f"Imported/updated lab rows: {len(all_results)}")
+
+
+if __name__ == "__main__":
+    parse_all_reports()
