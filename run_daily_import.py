@@ -13,6 +13,7 @@ STEPS = [
     PROJECT_ROOT / "exports" / "export_workout_context.py",
     PROJECT_ROOT / "exports" / "export_workout_trends_context.py",
     PROJECT_ROOT / "exports" / "export_training_recovery_context.py",
+    PROJECT_ROOT / "exports" / "export_daily_brief.py",
     PROJECT_ROOT / "cloud" / "upload_latest_snapshot.py",
     PROJECT_ROOT / "cloud" / "export_supabase_context.py",
 ]
