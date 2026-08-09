@@ -204,6 +204,50 @@ async function getRange() {
   };
 }
 
+async function getSnapshotByDate(snapshotDate: string) {
+  const rows = await supabaseGet(
+    `${TABLE}?select=*&snapshot_date=eq.${encodeURIComponent(snapshotDate)}&limit=1`
+  );
+
+  const row = rows?.[0] ?? null;
+
+  return {
+    status: row ? "ok" : "empty",
+    snapshot: row,
+  };
+}
+
+function snapshotMessageLines(snapshot: any) {
+  return [
+    `snapshot_date: ${snapshot.snapshot_date}`,
+    `steps: ${snapshot.steps}`,
+    `distance_meters: ${round(snapshot.distance_meters)}`,
+    `active_calories: ${round(snapshot.active_calories)}`,
+    `average_heart_rate: ${round(snapshot.average_heart_rate)}`,
+    `minimum_heart_rate: ${snapshot.minimum_heart_rate}`,
+    `maximum_heart_rate: ${snapshot.maximum_heart_rate}`,
+    `resting_heart_rate: ${snapshot.resting_heart_rate}`,
+    `sleep_total_minutes: ${snapshot.sleep_total_minutes}`,
+    `deep_sleep_minutes: ${snapshot.deep_sleep_minutes}`,
+    `rem_sleep_minutes: ${snapshot.rem_sleep_minutes}`,
+    `light_sleep_minutes: ${snapshot.light_sleep_minutes}`,
+    `awake_minutes: ${snapshot.awake_minutes}`,
+    `sleep_session_count: ${snapshot.sleep_session_count}`,
+    `sleep_score: ${round(snapshot.sleep_score)}`,
+    `energy_score: ${round(snapshot.energy_score)}`,
+    `energy_sleep_score: ${round(snapshot.energy_sleep_score)}`,
+    `energy_activity_score: ${round(snapshot.energy_activity_score)}`,
+    `workout_session_count: ${snapshot.workout_session_count}`,
+    `workout_total_duration_minutes: ${snapshot.workout_total_duration_minutes}`,
+    `vitalis_readiness_score: ${snapshot.vitalis_readiness_score}`,
+    `vitalis_sleep_quality_score: ${snapshot.vitalis_sleep_quality_score}`,
+    `vitalis_recovery_score: ${snapshot.vitalis_recovery_score}`,
+    `vitalis_training_load_score: ${snapshot.vitalis_training_load_score}`,
+    `vitalis_coach_note: ${snapshot.vitalis_coach_note}`,
+    `source: ${snapshot.source}`,
+  ];
+}
+
 async function getLatestSummary() {
   const row = await getLatestRow();
 
@@ -413,6 +457,27 @@ Deno.serve(async (request) => {
       return jsonResponse(await getLatestSummary());
     }
 
+    if (path === "snapshot-message") {
+      const date = new URL(request.url).searchParams.get("date");
+
+      if (!date) {
+        return messageResponse([
+          "error: missing date parameter",
+          "example: /snapshot-message?date=2026-08-08",
+        ]);
+      }
+
+      const result = await getSnapshotByDate(date);
+
+      if (result.status !== "ok" || !result.snapshot) {
+        return messageResponse([
+          `No snapshot found for date: ${date}`,
+        ]);
+      }
+
+      return messageResponse(snapshotMessageLines(result.snapshot));
+    }
+
     if (path === "latest-summary-message") {
       const result = await getLatestSummary();
       const snapshot = result.latest_summary;
@@ -599,6 +664,7 @@ Deno.serve(async (request) => {
         "/training-recovery",
         "/last-30-training-recovery",
         "/range-message",
+		"/snapshot-message?date=YYYY-MM-DD",
         "/latest-summary-message",
         "/daily-brief-message",
         "/last-30-training-message",
