@@ -58,3 +58,4 @@ android/VitalisBridge/app/build/
 android/VitalisBridge/local.propertiesdata/lab_results.csv
 data/medical_reports/
 python
+data/lab_results.csv
