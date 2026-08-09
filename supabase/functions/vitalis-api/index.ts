@@ -248,6 +248,110 @@ function snapshotMessageLines(snapshot: any) {
   ];
 }
 
+function parsePeriod(period: string) {
+  if (period.includes("..")) {
+    const [start, end] = period.split("..");
+    return { start, end };
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(period)) {
+    return { start: period, end: period };
+  }
+
+  if (/^\d{4}-\d{2}$/.test(period)) {
+    const [year, month] = period.split("-").map(Number);
+    const endDate = new Date(Date.UTC(year, month, 0));
+    return {
+      start: `${period}-01`,
+      end: endDate.toISOString().slice(0, 10),
+    };
+  }
+
+  if (/^\d{4}$/.test(period)) {
+    return {
+      start: `${period}-01-01`,
+      end: `${period}-12-31`,
+    };
+  }
+
+  throw new Error(`Invalid period: ${period}`);
+}
+
+async function getRowsForPeriod(period: string) {
+  const range = parsePeriod(period);
+
+  const rows = await supabaseGet(
+    `${TABLE}?select=*&snapshot_date=gte.${range.start}&snapshot_date=lte.${range.end}&order=snapshot_date.asc`
+  );
+
+  return {
+    period,
+    start: range.start,
+    end: range.end,
+    rows: rows ?? [],
+  };
+}
+
+
+
+function periodSummary(periodData: any) {
+  const rows = periodData.rows;
+
+  return {
+    period: periodData.period,
+    start: periodData.start,
+    end: periodData.end,
+    days: rows.length,
+    total_steps: sum(rows, "steps"),
+    average_steps: average(rows, "steps"),
+    average_sleep_minutes: average(rows, "sleep_total_minutes"),
+    average_heart_rate: average(rows, "average_heart_rate"),
+    average_readiness: average(rows, "vitalis_readiness_score"),
+    average_sleep_quality: average(rows, "vitalis_sleep_quality_score"),
+    average_recovery: average(rows, "vitalis_recovery_score"),
+    average_training_load: average(rows, "vitalis_training_load_score"),
+    workout_days: rows.filter((row) => Number(row.workout_session_count ?? 0) > 0).length,
+    workout_duration_minutes: sum(rows, "workout_total_duration_minutes"),
+  };
+}
+
+function difference(valueB: number | null, valueA: number | null) {
+  if (valueA === null || valueB === null) return null;
+  return round(valueB - valueA);
+}
+
+function compareMessageLines(summaryA: any, summaryB: any) {
+  return [
+    `period_a: ${summaryA.period}`,
+    `period_b: ${summaryB.period}`,
+    `period_a_range: ${summaryA.start}..${summaryA.end}`,
+    `period_b_range: ${summaryB.start}..${summaryB.end}`,
+    `period_a_days: ${summaryA.days}`,
+    `period_b_days: ${summaryB.days}`,
+    `period_a_total_steps: ${summaryA.total_steps}`,
+    `period_b_total_steps: ${summaryB.total_steps}`,
+    `average_steps_change: ${difference(summaryB.average_steps, summaryA.average_steps)}`,
+    `average_sleep_change_minutes: ${difference(summaryB.average_sleep_minutes, summaryA.average_sleep_minutes)}`,
+    `average_heart_rate_change: ${difference(summaryB.average_heart_rate, summaryA.average_heart_rate)}`,
+    `readiness_change: ${difference(summaryB.average_readiness, summaryA.average_readiness)}`,
+    `sleep_quality_change: ${difference(summaryB.average_sleep_quality, summaryA.average_sleep_quality)}`,
+    `recovery_change: ${difference(summaryB.average_recovery, summaryA.average_recovery)}`,
+    `training_load_change: ${difference(summaryB.average_training_load, summaryA.average_training_load)}`,
+    `workout_days_change: ${summaryB.workout_days - summaryA.workout_days}`,
+    `workout_duration_change_minutes: ${round(summaryB.workout_duration_minutes - summaryA.workout_duration_minutes)}`,
+  ];
+}
+
+async function comparePeriods(periodA: string, periodB: string) {
+  const dataA = await getRowsForPeriod(periodA);
+  const dataB = await getRowsForPeriod(periodB);
+
+  return {
+    summaryA: periodSummary(dataA),
+    summaryB: periodSummary(dataB),
+  };
+}
+
 async function getLatestSummary() {
   const row = await getLatestRow();
 
@@ -457,6 +561,28 @@ Deno.serve(async (request) => {
       return jsonResponse(await getLatestSummary());
     }
 
+    if (path === "compare-periods-message") {
+      const url = new URL(request.url);
+      const periodA = url.searchParams.get("period_a");
+      const periodB = url.searchParams.get("period_b");
+
+      if (!periodA || !periodB) {
+        return messageResponse([
+          "error: missing period_a or period_b",
+          "examples:",
+          "/compare-periods-message?period_a=2026-08-08&period_b=2026-08-09",
+          "/compare-periods-message?period_a=2026-07&period_b=2026-08",
+          "/compare-periods-message?period_a=2025&period_b=2026",
+          "/compare-periods-message?period_a=2026-08-01..2026-08-07&period_b=2026-08-08..2026-08-14",
+        ]);
+      }
+
+      const result = await comparePeriods(periodA, periodB);
+
+      return messageResponse(compareMessageLines(result.summaryA, result.summaryB));
+    }
+
+
     if (path === "snapshot-message") {
       const date = new URL(request.url).searchParams.get("date");
 
@@ -664,6 +790,7 @@ Deno.serve(async (request) => {
         "/training-recovery",
         "/last-30-training-recovery",
         "/range-message",
+		"/compare-periods-message?period_a=YYYY-MM-DD&period_b=YYYY-MM-DD",
 		"/snapshot-message?date=YYYY-MM-DD",
         "/latest-summary-message",
         "/daily-brief-message",
