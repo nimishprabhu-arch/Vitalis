@@ -418,9 +418,6 @@ async function getLatestLabsSummaryMessage() {
     "Urine Ketones",
   ];
 
-  const rows = await supabaseGet(
-    "medical_lab_results?select=test_date,marker,raw_marker,canonical_marker,value,result_text,unit,reference_low,reference_high,flag,category,source_file,notes&order=test_date.desc"
-  );
 
   const zeroSensitiveMarkers = new Set([
     "Hemoglobin",
@@ -491,25 +488,30 @@ async function getLatestLabsSummaryMessage() {
     return canonicalName === marker;
   }
 
-  const latestByMarker = new Map();
+  async function getLatestRealLabRow(marker: string) {
+    const encodedMarker = encodeURIComponent(marker);
 
-  for (const marker of importantMarkers) {
-    const candidates = rows.filter((row: any) => {
+    const markerRows = await supabaseGet(
+      `medical_lab_results?select=test_date,marker,raw_marker,canonical_marker,value,result_text,unit,reference_low,reference_high,flag,category,source_file,notes&canonical_marker=eq.${encodedMarker}&order=test_date.desc,notes.desc,source_file.asc,marker.asc&limit=20`
+    );
+
+    if (!Array.isArray(markerRows)) return null;
+
+    return markerRows.find((row: any) => {
       const hasNumericValue = row.value !== null && row.value !== undefined;
       const hasTextValue =
         row.result_text !== null &&
         row.result_text !== undefined &&
         String(row.result_text).trim() !== "";
 
-      return (
-        isMatchingLabMarker(marker, row) &&
-        (hasNumericValue || hasTextValue) &&
-        !isBadLabSummaryRow(marker, row)
-      );
-    });
+      return (hasNumericValue || hasTextValue) && !isBadLabSummaryRow(marker, row);
+    }) ?? null;
+  }
 
-    const latest = candidates[0] ?? null;
-    latestByMarker.set(marker, latest);
+  const latestByMarker = new Map();
+
+  for (const marker of importantMarkers) {
+    latestByMarker.set(marker, await getLatestRealLabRow(marker));
   }
 
   const lines = [
