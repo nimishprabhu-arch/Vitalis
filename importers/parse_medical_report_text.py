@@ -26,12 +26,6 @@ KNOWN_MARKERS = [
     ("Lipids", "Cholesterol/HDL Ratio"),
     ("Lipids", "LDL/HDL Ratio"),
 
-    ("Liver", "ALT"),
-    ("Liver", "AST"),
-    ("Liver", "GGT"),
-    ("Liver", "Alkaline Phosphatase"),
-    ("Liver", "Bilirubin"),
-
     ("CBC", "Hemoglobin"),
     ("CBC", "RBC"),
     ("CBC", "Hematocrit"),
@@ -42,15 +36,23 @@ KNOWN_MARKERS = [
     ("CBC", "WBC"),
     ("CBC", "Platelet Count"),
 
-
-
     ("Kidney", "Creatinine"),
     ("Kidney", "Urea"),
     ("Kidney", "Uric Acid"),
+    ("Kidney", "BUN"),
 
+    ("Liver", "ALT"),
+    ("Liver", "AST"),
+    ("Liver", "GGT"),
+    ("Liver", "Alkaline Phosphatase"),
+    ("Liver", "Bilirubin"),
+
+    ("Pancreas", "Amylase"),
+    ("Pancreas", "Lipase"),
+
+    ("Thyroid", "Free T3"),
+    ("Thyroid", "Free T4"),
     ("Thyroid", "TSH"),
-    ("Thyroid", "T3"),
-    ("Thyroid", "T4"),
 
     ("Vitamins", "Vitamin D"),
     ("Vitamins", "Vitamin B12"),
@@ -58,6 +60,8 @@ KNOWN_MARKERS = [
 
 QUALITATIVE_MARKERS = [
     ("Infectious Disease", "HBsAg"),
+    ("Infectious Disease", "HIV"),
+    ("Infectious Disease", "HCV"),
     ("Urine", "Fasting Urine Sugar"),
     ("Urine", "Post Prandial Urine Sugar"),
     ("Urine", "Fasting Urine Aceton"),
@@ -88,6 +92,8 @@ def clean_text(value):
         "mg/dlNormal": "mg/dl",
         "%NormaL": "%",
         "%Normal": "%",
+        "Eythyroid": "",
+        "Euthyroid": "",
         "up": "",
         "LDL": "",
     }
@@ -130,6 +136,7 @@ def marker_regex(marker):
         "Post Prandial Blood Sugar": r"Post\s+Prandial\s+Blood\s+Sugar",
         "HbA1c": r"(?:Glycosylated\s+HB\s*\(\s*HbA1C\s*\)|HbA1C|Glycosylated\s+Haemoglobin|Glycosylated\s+Hemoglobin)",
         "Estimated Average Glucose": r"Estimated\s+Average\s+Glucose",
+
         "Total Cholesterol": r"(?<!HDL - )(?<!LDL - )\bCholesterol\b",
         "Triglycerides": r"Triglycerides?",
         "HDL": r"HDL\s*-?\s*Cholesterol",
@@ -148,57 +155,84 @@ def marker_regex(marker):
         "MCHC": r"\bMCHC\b",
         "RDW": r"\bRDW\b",
 
-        "AST": r"(?:AST|SGOT)",
-        "ALT": r"(?:ALT|SGPT)",
-        "GGT": r"(?:GGT|Gamma\s*GT|Gamma\s+Glutamyl\s+Transferase)",
-        "Alkaline Phosphatase": r"(?:Alkaline\s+Phosphatase|ALP)",
-        "Bilirubin": r"(?:Total\s+)?Bilirubin",
-        "Direct Bilirubin": r"Direct\s+Bilirubin",
-        "Indirect Bilirubin": r"Indirect\s+Bilirubin",
-        "Total Protein": r"Total\s+Protein",
-        "Albumin": r"Albumin",
-        "Globulin": r"Globulin",
-
         "Creatinine": r"(?:Serum\s+)?Creatinine",
         "Urea": r"(?:Blood\s+)?Urea",
         "Uric Acid": r"Uric\s+Acid",
-        "BUN": r"(?:BUN|Blood\s+Urea\s+Nitrogen)",
-        "eGFR": r"(?:eGFR|e-GFR)",
+        "BUN": r"(?:Blood\s+Urea\s+Nitrogen|BUN)",
 
-        "TSH": r"(?:TSH|Thyroid\s+Stimulating\s+Hormone)",
-        "T3": r"(?:Total\s+)?T3",
-        "T4": r"(?:Total\s+)?T4",
-        "Free T3": r"(?:Free\s+T3|FT3)",
-        "Free T4": r"(?:Free\s+T4|FT4)",
+        "AST": r"(?:AST|SGOT)",
+        "ALT": r"(?:ALT|SGPT)",
+        "GGT": r"(?:GGTP|GGT|Gamma\s*GT|Gamma\s+Glutamyl\s+Transferase)",
+        "Alkaline Phosphatase": r"(?:Alkaline\s+Phosphatase|ALP)",
+        "Bilirubin": r"(?:Total\s+)?Bilirubin",
+
+        "Amylase": r"\bAmylase\b",
+        "Lipase": r"\bLipase\b",
+
+        "Free T3": r"Free\s+T3\s*\(\s*Free\s+Triiodothyronine\s*\)",
+        "Free T4": r"Free\s+T4\s*\(\s*Free\s+Thyroxine\s*\)",
+        "TSH": r"TSH\s*\(\s*ULTRASENSITIVE\s*\)",
 
         "Vitamin D": r"(?:Vitamin\s+D|25\s*-?\s*Hydroxy\s+Vitamin\s+D|25\s*-?\s*OH\s+Vitamin\s+D)",
         "Vitamin B12": r"(?:Vitamin\s+B12|B12)",
     }
 
     marker_pattern = marker_patterns.get(marker, re.escape(marker))
+    unit_pattern = r"(mg/dL|mg/dl|g/dl|M/uL|/cumm|mmol/L|uIU/ml|pg/ml|ng/dl|U/L|fL|fl|pg|%)"
 
     return re.compile(
-        rf"{marker_pattern}\s*:?\s*([<>]?\s*\d+(?:\.\d+)?)\s*([a-zA-Z/%µ\.]+)?",
+        rf"{marker_pattern}\s*:?\s*([<>]?\s*\d+(?:\.\d+)?)\s*({unit_pattern})?",
         flags=re.IGNORECASE,
     )
     marker_pattern = marker_patterns.get(marker, re.escape(marker))
 
     return re.compile(
-        rf"{marker_pattern}\s*:?\s*([<>]?\s*\d+(?:\.\d+)?)\s*([a-zA-Z/%µ\.]+)?",
+        rf"{marker_pattern}\s*:?\s*([<>]?\s*\d+(?:\.\d+)?)\s*([a-zA-Z0-9/%Âµ\.]+)?",
         flags=re.IGNORECASE,
     )
 
+
 def qualitative_marker_regex(marker):
-    escaped = r"(?:Australia\s+antigen\s*\(\s*HbsAg\s*\)|HBsAg)"
+    marker_patterns = {
+        "HBsAg": r"(?:Australia\s+antigen\s*\(\s*HbsAg\s*\)|HBsAg)",
+        "HIV": r"(?:HIV\s*I|HIV\s*II|Human\s+Immunodeficiency\s+Virus)",
+        "HCV": r"(?:HCV\s+ANTIBODY|HCV)",
+    }
+
+    marker_pattern = marker_patterns.get(marker, re.escape(marker))
+
     return re.compile(
-        rf"{escaped}\s*:?\s*(Negative|Positive|Absent|Present|Trace|No Sample)",
+        rf"{marker_pattern}\s*:?\s*(NON[-\s]?REACTIVE|Negative|Positive|Reactive|Absent|Present|Trace|No Sample)",
         flags=re.IGNORECASE,
     )
+
+
+def normalize_result_text(value):
+    value = clean_text(value)
+
+    if not value:
+        return None
+
+    normalized = value.upper().replace(" ", "-")
+
+    if normalized in {"NON-REACTIVE", "NONREACTIVE"}:
+        return "Non-reactive"
+
+    if normalized == "NEGATIVE":
+        return "Negative"
+
+    if normalized == "POSITIVE":
+        return "Positive"
+
+    if normalized == "REACTIVE":
+        return "Reactive"
+
+    return value
 
 
 def find_reference_range(text, start_index):
-    nearby_text = text[start_index : start_index + 120]
-    match = re.search(r"(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)", nearby_text)
+    nearby_text = text[start_index : start_index + 140]
+    match = re.search(r"(\d+(?:\.\d+)?)\s*[-â€“]\s*(\d+(?:\.\d+)?)", nearby_text)
 
     if not match:
         return None, None
@@ -301,7 +335,7 @@ def parse_report_file(path):
         pattern = qualitative_marker_regex(raw_marker)
 
         for match in pattern.finditer(compact_text):
-            result_text = match.group(1).strip()
+            result_text = normalize_result_text(match.group(1))
             canonical_marker, category = canonicalize_marker(raw_marker, panel)
 
             results.append(

@@ -56,6 +56,15 @@ MARKER_RULES = [
 
     ("Urine Sugar", "Urine", ["urine sugar", "fasting urine sugar", "post prandial urine sugar"]),
     ("Urine Ketones", "Urine", ["urine acetone", "urine ketone", "fasting urine aceton", "post prandial urine acetone"]),
+    
+    ("Amylase", "Pancreas", ["amylase"]),
+("Lipase", "Pancreas", ["lipase"]),
+("BUN", "Kidney", ["bun", "blood urea nitrogen"]),
+("Free T3", "Thyroid", ["free t3", "free triiodothyronine", "ft3"]),
+("Free T4", "Thyroid", ["free t4", "free thyroxine", "ft4"]),
+("TSH", "Thyroid", ["tsh", "tsh ultrasensitive", "ultrasensitive tsh", "thyroid stimulating hormone"]),
+("HIV", "Infectious Disease", ["hiv", "hiv i", "hiv ii", "human immunodeficiency virus"]),
+("HCV", "Infectious Disease", ["hcv", "hcv antibody", "hepatitis c"]),
 ]
 
 

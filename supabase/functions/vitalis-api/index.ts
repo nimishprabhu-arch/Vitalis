@@ -365,20 +365,57 @@ function labValueText(row: Record<string, unknown>) {
 }
 
 async function getLatestLabsSummaryMessage() {
-  const importantMarkers = [
+   const importantMarkers = [
     "Hemoglobin",
+    "Hematocrit",
+    "RBC",
+    "WBC",
+    "Platelet Count",
+    "MCV",
+    "MCH",
+    "MCHC",
+    "RDW",
+
     "HbA1c",
+    "Estimated Average Glucose",
     "Fasting Blood Sugar",
     "Post Prandial Blood Sugar",
+
     "Total Cholesterol",
     "HDL",
     "LDL",
     "Triglycerides",
+    "VLDL",
+    "Cholesterol/HDL Ratio",
+    "LDL/HDL Ratio",
+
     "Creatinine",
+    "Urea",
+    "BUN",
     "Uric Acid",
+
     "Bilirubin",
     "Alkaline Phosphatase",
+    "AST",
+    "ALT",
+    "GGT",
+
+    "Amylase",
+    "Lipase",
+
+    "Free T3",
+    "Free T4",
+    "TSH",
+
+    "Vitamin D",
+    "Vitamin B12",
+
     "HBsAg",
+    "HIV",
+    "HCV",
+
+    "Urine Sugar",
+    "Urine Ketones",
   ];
 
   const rows = await supabaseGet(
