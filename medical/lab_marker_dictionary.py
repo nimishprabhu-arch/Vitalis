@@ -13,7 +13,7 @@ MARKER_RULES = [
     ("LDL/HDL Ratio", "Lipids", ["ldl / hdl ratio", "ldl/hdl ratio", "ldl hdl ratio"]),
 
     ("Hemoglobin", "CBC", ["hemoglobin", "haemoglobin", "hb"]),
-    ("WBC", "CBC", ["wbc", "white blood cells", "total leucocyte count", "total leukocyte count", "tlc"]),
+    ("WBC", "CBC", ["wbc", "wbc total count", "total wbc count", "white blood cells", "total leucocyte count", "total leukocyte count", "tlc"]),
     ("RBC", "CBC", ["rbc", "red blood cells", "red blood cell count"]),
     ("Platelet Count", "CBC", ["platelet", "platelet count", "platelets"]),
     ("Hematocrit", "CBC", ["hematocrit", "haematocrit", "pcv"]),
@@ -35,7 +35,7 @@ MARKER_RULES = [
 
     ("Creatinine", "Kidney", ["creatinine", "serum creatinine"]),
     ("Urea", "Kidney", ["urea", "blood urea"]),
-    ("Uric Acid", "Kidney", ["uric acid"]),
+    ("Uric Acid", "Kidney", ["uric acid", "uric acid, serum"]),
     ("BUN", "Kidney", ["bun", "blood urea nitrogen"]),
     ("eGFR", "Kidney", ["egfr", "e-gfr"]),
 

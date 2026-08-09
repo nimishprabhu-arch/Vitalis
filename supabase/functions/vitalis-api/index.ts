@@ -419,20 +419,97 @@ async function getLatestLabsSummaryMessage() {
   ];
 
   const rows = await supabaseGet(
-    "medical_lab_results?select=test_date,canonical_marker,value,result_text,unit,reference_low,reference_high,flag,category,source_file&order=test_date.desc"
+    "medical_lab_results?select=test_date,marker,raw_marker,canonical_marker,value,result_text,unit,reference_low,reference_high,flag,category,source_file,notes&order=test_date.desc"
   );
+
+  const zeroSensitiveMarkers = new Set([
+    "Hemoglobin",
+    "Hematocrit",
+    "RBC",
+    "WBC",
+    "Platelet Count",
+    "MCV",
+    "MCH",
+    "MCHC",
+    "RDW",
+    "LDL",
+    "HDL",
+    "Total Cholesterol",
+    "Triglycerides",
+    "Creatinine",
+    "BUN",
+    "Uric Acid",
+    "Amylase",
+  ]);
+
+  function normalizedLabName(value: unknown) {
+    return String(value ?? "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function isBadLabSummaryRow(marker: string, row: any) {
+    const value = row.value === null || row.value === undefined ? null : Number(row.value);
+    const rawName = normalizedLabName(row.raw_marker ?? row.marker ?? row.canonical_marker);
+
+    if (row.test_date === "unknown") return true;
+    if (zeroSensitiveMarkers.has(marker) && value === 0) return true;
+        if (
+      marker === "LDL" &&
+      (
+        rawName === "vldl" ||
+        rawName.includes("vldl") ||
+        value === 37 ||
+        (Number(row.reference_low) === 10 && Number(row.reference_high) === 40)
+      )
+    ) {
+      return true;
+    }
+    if (marker === "Total Cholesterol" && rawName.includes("cholesterol hdl ratio")) return true;
+    if (marker === "Hemoglobin" && rawName.includes("glycosylated")) return true;
+
+    return false;
+  }
+
+  function isMatchingLabMarker(marker: string, row: any) {
+    const canonicalName = String(row.canonical_marker ?? "");
+    const rawName = normalizedLabName(row.raw_marker ?? row.marker ?? row.canonical_marker);
+
+    if (marker === "LDL") {
+      return (
+        canonicalName === "LDL" &&
+        rawName !== "vldl" &&
+        !rawName.includes("ratio")
+      );
+    }
+
+    if (marker === "VLDL") {
+      return canonicalName === "VLDL" || rawName === "vldl";
+    }
+
+    return canonicalName === marker;
+  }
 
   const latestByMarker = new Map();
 
   for (const marker of importantMarkers) {
-    const latest = rows.find((row: any) => {
+    const candidates = rows.filter((row: any) => {
       const hasNumericValue = row.value !== null && row.value !== undefined;
-      const hasTextValue = row.result_text !== null && row.result_text !== undefined && String(row.result_text).trim() !== "";
+      const hasTextValue =
+        row.result_text !== null &&
+        row.result_text !== undefined &&
+        String(row.result_text).trim() !== "";
 
-      return row.canonical_marker === marker && (hasNumericValue || hasTextValue);
+      return (
+        isMatchingLabMarker(marker, row) &&
+        (hasNumericValue || hasTextValue) &&
+        !isBadLabSummaryRow(marker, row)
+      );
     });
 
-    latestByMarker.set(marker, latest ?? null);
+    const latest = candidates[0] ?? null;
+    latestByMarker.set(marker, latest);
   }
 
   const lines = [
@@ -535,14 +612,43 @@ async function getLabsByPeriodMessage(period: string) {
     };
   }
 
+  const zeroSensitiveMarkers = new Set([
+    "Hemoglobin",
+    "Hematocrit",
+    "RBC",
+    "WBC",
+    "Platelet Count",
+    "MCV",
+    "MCH",
+    "MCHC",
+    "RDW",
+    "Creatinine",
+    "Urea",
+    "BUN",
+    "Uric Acid",
+    "Total Cholesterol",
+    "HDL",
+    "LDL",
+    "Triglycerides",
+    "HbA1c",
+  ]);
+
+  const trustedRows = rows.filter((row) => {
+    if (row.value === 0 && zeroSensitiveMarkers.has(labMarkerName(row))) {
+      return false;
+    }
+
+    return true;
+  });
+
   const lines = [
     `period: ${period}`,
     `period_range: ${result.start}..${result.end}`,
-    `lab_rows: ${rows.length}`,
+    `lab_rows: ${trustedRows.length}`,
     "",
   ];
 
-  for (const row of rows) {
+  for (const row of trustedRows) {
     const reference =
       row.reference_low !== null || row.reference_high !== null
         ? `${row.reference_low ?? ""}-${row.reference_high ?? ""}`

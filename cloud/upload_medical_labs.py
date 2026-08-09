@@ -38,7 +38,11 @@ def load_rows():
             """
         ).fetchall()
 
-    return [dict(row) for row in rows]
+    return [
+    dict(row)
+    for row in rows
+    if row["test_date"] and row["test_date"] != "unknown"
+]
 
 
 def upload_rows(rows):

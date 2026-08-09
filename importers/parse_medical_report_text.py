@@ -192,17 +192,25 @@ def marker_regex(marker):
     )
 
 
-def qualitative_marker_regex(marker):
-    marker_patterns = {
-        "HBsAg": r"(?:Australia\s+antigen\s*\(\s*HbsAg\s*\)|HBsAg)",
-        "HIV": r"(?:HIV\s*I|HIV\s*II|Human\s+Immunodeficiency\s+Virus)",
-        "HCV": r"(?:HCV\s+ANTIBODY|HCV)",
-    }
+def marker_regex(marker):
+    marker_pattern = re.escape(marker).replace(r"\ ", r"\s+")
 
-    marker_pattern = marker_patterns.get(marker, re.escape(marker))
+    method_words = (
+        r"(?:Spectrophotometric|Elect\.\s*Impedance|Calculated|Measured|"
+        r"Photometry|Impedance|Colorimetric|Enzymatic|CLIA|ECLIA)"
+    )
+
+    unit_pattern = (
+        r"(?:mg/dL|mg/dl|g/dL|g/dl|mil/cmm|M/uL|/cmm|/cumm|"
+        r"mmol/L|uIU/ml|pg/ml|ng/dl|U/L|fL|fl|pg|%)"
+    )
 
     return re.compile(
-        rf"{marker_pattern}\s*:?\s*(NON[-\s]?REACTIVE|Negative|Positive|Reactive|Absent|Present|Trace|No Sample)",
+        rf"(?<![A-Za-z]){marker_pattern}\s+"
+        rf"([<>]?\s*\d[\d,]*(?:\.\d+)?)"
+        rf"(?:\s+{method_words})?"
+        rf"\s*(\d[\d,]*(?:\.\d+)?)?\s*-\s*(\d[\d,]*(?:\.\d+)?)?"
+        rf"\s*({unit_pattern})?",
         flags=re.IGNORECASE,
     )
 
@@ -290,6 +298,19 @@ def ensure_column(connection, column_name, column_type):
     if column_name not in columns:
         connection.execute(f"alter table medical_lab_results add column {column_name} {column_type}")
 
+def qualitative_marker_regex(marker):
+    marker_pattern = re.escape(marker).replace(r"\ ", r"\s+")
+
+    qualitative_values = (
+        r"(Negative|NEGATIVE|Non[\s-]?Reactive|NON[\s-]?REACTIVE|"
+        r"Reactive|REACTIVE|Positive|POSITIVE|Absent|ABSENT|"
+        r"Present|PRESENT|No\s+Sample|NO\s+SAMPLE)"
+    )
+
+    return re.compile(
+        rf"{marker_pattern}\s*:?\s*{qualitative_values}",
+        flags=re.IGNORECASE,
+    )
 
 def parse_report_file(path):
     text = path.read_text(encoding="utf-8", errors="ignore")
@@ -307,8 +328,15 @@ def parse_report_file(path):
 
         for match in pattern.finditer(compact_text):
             value = parse_float(match.group(1))
-            unit = clean_text(match.group(2))
-            reference_low, reference_high = find_reference_range(compact_text, match.end())
+            reference_low = parse_float(match.group(2)) if match.lastindex and match.lastindex >= 2 else None
+            reference_high = parse_float(match.group(3)) if match.lastindex and match.lastindex >= 3 else None
+            unit = clean_text(match.group(4)) if match.lastindex and match.lastindex >= 4 else None
+
+            if reference_low is None or reference_high is None:
+                fallback_low, fallback_high = find_reference_range(compact_text, match.end())
+                reference_low = reference_low if reference_low is not None else fallback_low
+                reference_high = reference_high if reference_high is not None else fallback_high
+
             flag = calculate_flag(value, reference_low, reference_high)
             canonical_marker, category = canonicalize_marker(raw_marker, panel)
 
@@ -330,7 +358,6 @@ def parse_report_file(path):
                     "notes": "parsed_from_pdf_text",
                 }
             )
-
     for panel, raw_marker in QUALITATIVE_MARKERS:
         pattern = qualitative_marker_regex(raw_marker)
 
@@ -357,8 +384,261 @@ def parse_report_file(path):
                 }
             )
 
-    return results
 
+    special_patterns = [
+        (
+            "CBC",
+            "WBC Total Count",
+            r"WBC\s+Total\s+Count\s+([\d,]+)\s+Elect\.\s*Impedance\s*([\d,]+)\s*-\s*([\d,]+)\s*(/cmm|/cumm)?",
+        ),
+        (
+            "Kidney",
+            "URIC ACID, Serum",
+            r"([\d.]+)\s*-\s*([\d.]+)\s*(mg/dL|mg/dl)\s+Uricase\s*([\d.]+)\s*URIC\s+ACID,\s*Serum",
+        ),
+    ]
+
+    for panel, raw_marker, pattern_text in special_patterns:
+        pattern = re.compile(pattern_text, flags=re.IGNORECASE)
+
+        for match in pattern.finditer(compact_text):
+            if raw_marker == "URIC ACID, Serum":
+                reference_low = parse_float(match.group(1))
+                reference_high = parse_float(match.group(2))
+                unit = clean_text(match.group(3))
+                value = parse_float(match.group(4))
+            else:
+                value = parse_float(match.group(1))
+                reference_low = parse_float(match.group(2))
+                reference_high = parse_float(match.group(3))
+                unit = clean_text(match.group(4))
+
+            flag = calculate_flag(value, reference_low, reference_high)
+            canonical_marker, category = canonicalize_marker(raw_marker, panel)
+
+            results.append(
+                {
+                    "test_date": test_date,
+                    "panel": panel,
+                    "marker": raw_marker,
+                    "raw_marker": raw_marker,
+                    "canonical_marker": canonical_marker,
+                    "category": category,
+                    "value": value,
+                    "result_text": None,
+                    "unit": unit,
+                    "reference_low": reference_low,
+                    "reference_high": reference_high,
+                    "flag": flag,
+                    "source_file": source_file,
+                    "notes": "parsed_from_pdf_text_special_layout",
+                }
+            )
+
+
+    special_layout_patterns = [
+        (
+            "CBC",
+            "Haemoglobin",
+            "Hemoglobin",
+            r"Haemoglobin\s+([\d.]+)\s+Spectrophotometric\s*([\d.]+)\s*-\s*([\d.]+)\s*(g/dL|g/dl)",
+        ),
+        (
+            "CBC",
+            "WBC Total Count",
+            "WBC",
+            r"WBC\s+Total\s+Count\s+([\d,]+)\s+Elect\.\s*Impedance\s*([\d,]+)\s*-\s*([\d,]+)\s*(/cmm|/cumm)",
+        ),
+        (
+            "CBC",
+            "Platelet Count",
+            "Platelet Count",
+            r"Platelet\s+Count\s+([\d,]+)\s+Elect\.\s*Impedance\s*([\d,]+)\s*-\s*([\d,]+)\s*(/cmm|/cumm)",
+        ),
+        (
+            "Kidney",
+            "URIC ACID, Serum",
+            "Uric Acid",
+            r"([\d.]+)\s*-\s*([\d.]+)\s*(mg/dL|mg/dl)\s+Uricase\s*([\d.]+)\s*URIC\s+ACID,\s*Serum",
+        ),
+        (
+            "Kidney",
+            "Blood Urea Nitrogen",
+            "BUN",
+            r"Blood\s+Urea\s+Nitrogen\s*:?\s*([\d.]+)\s*(mg/dL|mg/dl)\s*([\d.]+)\s*-\s*([\d.]+)\s*(mg/dL|mg/dl)",
+        ),
+        (
+            "Pancreas",
+            "Amylase",
+            "Amylase",
+            r"Amylase\s*:?\s*([\d.]+)\s*(U/L)\s*([\d.]+)\s*-\s*([\d.]+)\s*(U/L)",
+        ),
+    ]
+
+    for panel, raw_marker, canonical_hint, pattern_text in special_layout_patterns:
+        pattern = re.compile(pattern_text, flags=re.IGNORECASE)
+
+        for match in pattern.finditer(compact_text):
+            if canonical_hint == "Uric Acid":
+                reference_low = parse_float(match.group(1))
+                reference_high = parse_float(match.group(2))
+                unit = clean_text(match.group(3))
+                value = parse_float(match.group(4))
+            elif canonical_hint in {"BUN", "Amylase"}:
+                value = parse_float(match.group(1))
+                unit = clean_text(match.group(2))
+                reference_low = parse_float(match.group(3))
+                reference_high = parse_float(match.group(4))
+            else:
+                value = parse_float(match.group(1))
+                reference_low = parse_float(match.group(2))
+                reference_high = parse_float(match.group(3))
+                unit = clean_text(match.group(4))
+
+            flag = calculate_flag(value, reference_low, reference_high)
+            canonical_marker, category = canonicalize_marker(raw_marker, panel)
+
+            results = [
+                row
+                for row in results
+                if not (
+                    row["source_file"] == source_file
+                    and row["test_date"] == test_date
+                    and row["canonical_marker"] == canonical_marker
+                    and row.get("value") == 0
+                )
+            ]
+
+            results.append(
+                {
+                    "test_date": test_date,
+                    "panel": panel,
+                    "marker": raw_marker,
+                    "raw_marker": raw_marker,
+                    "canonical_marker": canonical_marker,
+                    "category": category,
+                    "value": value,
+                    "result_text": None,
+                    "unit": unit,
+                    "reference_low": reference_low,
+                    "reference_high": reference_high,
+                    "flag": flag,
+                    "source_file": source_file,
+                    "notes": "parsed_from_pdf_text_special_layout",
+                }
+            )
+
+    lipid_layout_patterns = [
+        (
+            "Total Cholesterol",
+            "Total Cholesterol",
+            r"LIPID\s+PROFILE.*?Test\s+Result\s+Unit\s+Normal\s+Range\s+Cholesterol\s*:?\s*([\d.]+)\s*(mg/dL|mg/dl).*?Boderline\s+High\s*([\d.]+)\s*-\s*([\d.]+)",
+        ),
+        (
+            "Triglycerides",
+            "Triglycerides",
+            r"Triglyceride\s*:?\s*([\d.]+)\s*(mg/dL|mg/dl).*?Boderline\s+High\s*([\d.]+)\s*-\s*([\d.]+)",
+        ),
+        (
+            "HDL",
+            "HDL",
+            r"HDL\s*-\s*Cholesterol\s*:?\s*([\d.]+)\s*(mg/dL|mg/dl).*?Standard\s+risk\s*([\d.]+)\s*-\s*([\d.]+)",
+        ),
+        (
+            "LDL",
+            "LDL",
+            r"LDL\s*-\s*Cholesterol\s*:?\s*([\d.]+)\s*(mg/dL|mg/dl).*?Boderline\s+high\s*([\d.]+)\s*-\s*([\d.]+)",
+        ),
+        (
+            "VLDL",
+            "VLDL",
+            r"\bVLDL\s*:?\s*([\d.]+)\s*(mg/dL|mg/dl)\s*([\d.]+)\s*-\s*([\d.]+)",
+        ),
+        (
+            "Cholesterol/HDL Ratio",
+            "Cholesterol/HDL Ratio",
+            r"Cholesterol\s*/\s*HDL\s+Ratio\s*:?\s*([\d.]+)",
+        ),
+        (
+            "LDL/HDL Ratio",
+            "LDL/HDL Ratio",
+            r"LDL\s*/\s*HDL\s+Ratio\s*:?\s*([\d.]+)",
+        ),
+    ]
+
+    lipid_rows = []
+
+    for raw_marker, canonical_marker in [
+        ("Total Cholesterol", "Total Cholesterol"),
+        ("Triglycerides", "Triglycerides"),
+        ("HDL", "HDL"),
+        ("LDL", "LDL"),
+        ("VLDL", "VLDL"),
+        ("Cholesterol/HDL Ratio", "Cholesterol/HDL Ratio"),
+        ("LDL/HDL Ratio", "LDL/HDL Ratio"),
+    ]:
+        pattern_text = next(
+            pattern for marker_name, _, pattern in lipid_layout_patterns if marker_name == raw_marker
+        )
+        pattern = re.compile(pattern_text, flags=re.IGNORECASE)
+
+        for match in pattern.finditer(compact_text):
+            value = parse_float(match.group(1))
+            unit = clean_text(match.group(2)) if match.lastindex and match.lastindex >= 2 else None
+            reference_low = parse_float(match.group(3)) if match.lastindex and match.lastindex >= 3 else None
+            reference_high = parse_float(match.group(4)) if match.lastindex and match.lastindex >= 4 else None
+
+            if canonical_marker == "LDL":
+                reference_low = 100.0
+                reference_high = 129.0
+            elif canonical_marker == "Total Cholesterol":
+                reference_low = 200.0
+                reference_high = 239.0
+            elif canonical_marker == "Triglycerides":
+                reference_low = 150.0
+                reference_high = 199.0
+            elif canonical_marker == "HDL":
+                reference_low = 35.0
+                reference_high = 55.0
+
+            flag = calculate_flag(value, reference_low, reference_high)
+            canonicalized_marker, category = canonicalize_marker(canonical_marker, "Lipids")
+
+            lipid_rows.append(
+                {
+                    "test_date": test_date,
+                    "panel": "Lipids",
+                    "marker": raw_marker,
+                    "raw_marker": raw_marker,
+                    "canonical_marker": canonicalized_marker,
+                    "category": category,
+                    "value": value,
+                    "result_text": None,
+                    "unit": unit,
+                    "reference_low": reference_low,
+                    "reference_high": reference_high,
+                    "flag": flag,
+                    "source_file": source_file,
+                    "notes": "parsed_from_pdf_text_lipid_layout",
+                }
+            )
+
+    if lipid_rows:
+        lipid_markers = {row["canonical_marker"] for row in lipid_rows}
+
+        results = [
+            row
+            for row in results
+            if not (
+                row["source_file"] == source_file
+                and row["test_date"] == test_date
+                and row["canonical_marker"] in lipid_markers
+            )
+        ]
+
+        results.extend(lipid_rows)
+
+    return results
 
 def save_results(results):
     imported_at = datetime.now(timezone.utc).isoformat()
