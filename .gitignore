@@ -1,4 +1,58 @@
-.env
-database/*.db
+# Python cache
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Local database
+database/*.db
+database/*.db-*
+*.sqlite
+*.sqlite3
+
+# Generated exports / reports
+exports/*.md
+exports/*.csv
+exports/*.json
+reports/
+
+# Local secrets / environment
+.env
+.env.*
+*.local
+
+# Node / Supabase tooling
+node_modules/
+package-lock.json
+.npmrc
+
+# Backups and temporary files
+*.backup
+*.bak
+*.tmp
+index_backup_for_codex.txt
+patch_*.ps1
+
+# Samsung export data - private health data
+data/samsung_export/
+data/samsung_export/**
+
+# Google Drive / local snapshots
+data/snapshots/
+snapshots/
+
+# MCP / local runtime cache
+mcp/__pycache__/
+mcp/**/*.pyc
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Android generated files
+android/VitalisBridge/.gradle/
+android/VitalisBridge/build/
+android/VitalisBridge/app/build/
+android/VitalisBridge/local.properties
