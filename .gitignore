@@ -55,4 +55,6 @@ Thumbs.db
 android/VitalisBridge/.gradle/
 android/VitalisBridge/build/
 android/VitalisBridge/app/build/
-android/VitalisBridge/local.properties
+android/VitalisBridge/local.propertiesdata/lab_results.csv
+data/medical_reports/
+python
