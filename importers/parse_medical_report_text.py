@@ -72,6 +72,7 @@ DATE_PATTERNS = [
     re.compile(r"Registration Date\s*&\s*Time:\s*(\d{2}/\d{2}/\d{4})", re.IGNORECASE),
     re.compile(r"Reporting Date\s*&\s*Time:\s*(\d{2}/\d{2}/\d{4})", re.IGNORECASE),
     re.compile(r"(\d{2}/\d{2}/\d{4})"),
+    re.compile(r"Sample Collection Date\s*:\s*(\d{2}/[A-Za-z]{3}/\d{4})", re.IGNORECASE),
 ]
 
 
@@ -111,7 +112,8 @@ def parse_report_date(text):
         if match:
             raw_date = match.group(1)
             try:
-                return datetime.strptime(raw_date, "%d/%m/%Y").date().isoformat()
+                date_format = "%d/%b/%Y" if re.search(r"/[A-Za-z]{3}/", raw_date) else "%d/%m/%Y"
+                return datetime.strptime(raw_date, date_format).date().isoformat()
             except ValueError:
                 continue
 
@@ -449,6 +451,21 @@ def parse_report_file(path):
             "WBC",
             r"WBC\s+Total\s+Count\s+([\d,]+)\s+Elect\.\s*Impedance\s*([\d,]+)\s*-\s*([\d,]+)\s*(/cmm|/cumm)",
         ),
+        
+        
+                (
+            "Vitamins",
+            "Vitamin B12",
+            "Vitamin B12",
+            r"VITAMIN\s+B12\s+Method:\s*CLIA.*?([\d.]+)\s*(pg/ml|pg/mL)\s*([\d.]+)\s*[–-]\s*([\d.]+)",
+        ),
+        (
+            "Vitamins",
+            "Vitamin D",
+            "Vitamin D",
+            r"VITAMIN\s+D\s*\(25\s*-\s*OH\s*VITAMIN\s*D\)\s+Method:\s*CLIA.*?([\d.]+)\s*(ng/ml|ng/mL)\s*([\d.]+)\s*[–-]\s*([\d.]+)",
+        ),
+        
         (
             "CBC",
             "Platelet Count",
@@ -484,7 +501,7 @@ def parse_report_file(path):
                 reference_high = parse_float(match.group(2))
                 unit = clean_text(match.group(3))
                 value = parse_float(match.group(4))
-            elif canonical_hint in {"BUN", "Amylase"}:
+            elif canonical_hint in {"BUN", "Amylase", "Vitamin B12", "Vitamin D"}:
                 value = parse_float(match.group(1))
                 unit = clean_text(match.group(2))
                 reference_low = parse_float(match.group(3))

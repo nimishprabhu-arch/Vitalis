@@ -18,6 +18,19 @@ def extract_with_pypdf(pdf_path):
     return "".join(pages).strip()
 
 
+def write_text_safely(output_path, content):
+    safe_text = content.encode(
+        "utf-8",
+        errors="replace",
+    ).decode("utf-8")
+
+    output_path.write_text(
+        safe_text,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+
 def main():
     PROCESSED_FOLDER.mkdir(parents=True, exist_ok=True)
 
@@ -39,9 +52,9 @@ def main():
             if not text:
                 text = "[No extractable text found. This may be a scanned/image PDF.]"
 
-            output_path.write_text(
+            write_text_safely(
+                output_path,
                 f"source_file={pdf_path.name}\n{text}\n",
-                encoding="utf-8"
             )
 
             extracted_count += 1
