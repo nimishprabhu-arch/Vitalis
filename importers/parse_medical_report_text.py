@@ -655,6 +655,98 @@ def parse_report_file(path):
 
         results.extend(lipid_rows)
 
+
+    value_before_patterns = [
+        ("CBC", "Haemoglobin", "Hemoglobin", r"([\d.]+)\s*Haemoglobin\s+Spectrophotometric\s*([\d.]+)\s*-\s*([\d.]+)\s*(g/dL|g/dl)"),
+        ("CBC", "RBC", "RBC", r"([\d.]+)\s*RBC\s+Elect\.\s*Impedance\s*([\d.]+)\s*-\s*([\d.]+)\s*(mil/cmm)"),
+        ("CBC", "PCV", "Hematocrit", r"([\d.]+)\s*PCV\s+Calculated\s*([\d.]+)\s*-\s*([\d.]+)\s*(%)"),
+        ("CBC", "MCV", "MCV", r"([\d.]+)\s*MCV\s+Measured\s*([\d.]+)\s*-\s*([\d.]+)\s*(fL|fl)"),
+        ("CBC", "MCH", "MCH", r"([\d.]+)\s*MCH\s+Calculated\s*([\d.]+)\s*-\s*([\d.]+)\s*(pg)"),
+        ("CBC", "MCHC", "MCHC", r"([\d.]+)\s*MCHC\s+Calculated\s*([\d.]+)\s*-\s*([\d.]+)\s*(g/dL|g/dl)"),
+        ("CBC", "RDW", "RDW", r"([\d.]+)\s*RDW\s+Calculated\s*([\d.]+)\s*-\s*([\d.]+)\s*(%)"),
+        ("CBC", "PCV", "Hematocrit", r"PCV\s+([\d.]+)\s+Calculated\s*([\d.]+)\s*-\s*([\d.]+)\s*(%)"),
+        ("CBC", "WBC Total Count", "WBC", r"([\d,]+)\s*WBC\s+Total\s+Count\s+Elect\.\s*Impedance\s*([\d,]+)\s*-\s*([\d,]+)\s*(/cmm|/cumm)"),
+        ("CBC", "Platelet Count", "Platelet Count", r"([\d,]+)\s*Platelet\s+Count\s+Elect\.\s*Impedance\s*([\d,]+)\s*-\s*([\d,]+)\s*(/cmm|/cumm)"),
+
+        ("Glucose", "GLUCOSE (SUGAR) FASTING", "Fasting Blood Sugar", r"([\d.]+)\s*GLUCOSE\s*\(SUGAR\)\s*FASTING.*?Non-Diabetic:\s*<\s*([\d.]+)\s*(mg/dl|mg/dL)"),
+        ("Glucose", "Glycosylated Hemoglobin (HbA1c)", "HbA1c", r"([\d.]+)\s*Glycosylated\s+Hemoglobin\s*\(HbA1c\)\s*,?\s*EDTA\s+WB\s*HPLCNon-Diabetic\s+Level:\s*<\s*([\d.]+)\s*(%)"),
+
+        ("Kidney", "BUN, Serum", "BUN", r"([\d.]+)\s*BUN,\s*Serum\s+Calculated\s*([\d.]+)\s*-\s*([\d.]+)\s*(mg/dL|mg/dl)"),
+        ("Kidney", "CREATININE, Serum", "Creatinine", r"([\d.]+)\s*CREATININE,\s*Serum.*?([\d.]+)\s*-\s*([\d.]+)\s*(mg/dL|mg/dl)"),
+        ("Kidney", "URIC ACID, Serum", "Uric Acid", r"([\d.]+)\s*URIC\s+ACID,\s*Serum\s+Uricase\s*([\d.]+)\s*-\s*([\d.]+)\s*(mg/dL|mg/dl)"),
+
+        ("Vitamins", "VITAMIN B12, Serum", "Vitamin B12", r"([\d.]+)\s*VITAMIN\s+B12,\s*Serum\s+ECLIA\s*([\d.]+)\s*-\s*([\d.]+)\s*(pg/mL|pg/ml)"),
+        ("Vitamins", "25-hydroxy Vitamin D Serum", "Vitamin D", r"([\d.]+)\s*25\s*-?\s*hydroxy\s+Vitamin\s+D\s+Serum\s+ECLIA.*?Sufficiency:\s*([\d.]+)\s*-\s*([\d.]+)\s*(ng/ml|ng/mL)"),
+
+        ("Lipids", "CHOLESTEROL, Serum", "Total Cholesterol", r"([\d.]+)\s*CHOLESTEROL,\s*Serum.*?Borderline\s+High:\s*([\d.]+)\s*-\s*([\d.]+)\s*(mg/dl|mg/dL)"),
+        ("Lipids", "TRIGLYCERIDES, Serum", "Triglycerides", r"([\d.]+)\s*TRIGLYCERIDES,\s*Serum\s+GPO-PODNormal:\s*<\s*([\d.]+)\s*(mg/dl|mg/dL)"),
+        ("Lipids", "HDL CHOLESTEROL", "HDL", r"([\d.]+)\s*HDL\s+CHOLESTEROL.*?Desirable:\s*>\s*([\d.]+)\s*(mg/dl|mg/dL)"),
+        ("Lipids", "LDL CHOLESTEROL", "LDL", r"([\d.]+)\s*LDL\s+CHOLESTEROL.*?Near\s+optimal:\s*([\d.]+)\s*-\s*([\d.]+)\s*(mg/dl|mg/dL)"),
+        ("Lipids", "VLDL CHOLESTEROL", "VLDL", r"([\d.]+)\s*VLDL\s+CHOLESTEROL.*?<\s*/?=?\s*([\d.]+)\s*(mg/dl|mg/dL)"),
+
+        ("Thyroid", "Free T4", "Free T4", r"([\d.]+)\s*Free\s+T4\s+Serum\s+ECLIA\s*([\d.]+)\s*-\s*([\d.]+)\s*(pmol/L)"),
+        ("Thyroid", "sensitiveTSH", "TSH", r"([\d.]+)\s*sensitiveTSH\s+Serum\s+ECLIA\s*([\d.]+)\s*-\s*([\d.]+)\s*(microIU/ml)"),
+    ]
+
+    value_before_rows = []
+
+    for panel, raw_marker, canonical_hint, pattern_text in value_before_patterns:
+        pattern = re.compile(pattern_text, flags=re.IGNORECASE)
+
+        for match in pattern.finditer(compact_text):
+            value = parse_float(match.group(1))
+
+            if canonical_hint in {"Fasting Blood Sugar", "HbA1c", "HDL", "VLDL", "Triglycerides"}:
+                reference_low = None
+                reference_high = parse_float(match.group(2))
+                unit = clean_text(match.group(3))
+            else:
+                reference_low = parse_float(match.group(2))
+                reference_high = parse_float(match.group(3))
+                unit = clean_text(match.group(4))
+
+            if canonical_hint == "HDL":
+                reference_low = parse_float(match.group(2))
+                reference_high = None
+
+            flag = calculate_flag(value, reference_low, reference_high)
+            canonical_marker, category = canonicalize_marker(canonical_hint, panel)
+
+            value_before_rows.append(
+                {
+                    "test_date": test_date,
+                    "panel": panel,
+                    "marker": canonical_hint,
+                    "raw_marker": raw_marker,
+                    "canonical_marker": canonical_marker,
+                    "category": category,
+                    "value": value,
+                    "result_text": None,
+                    "unit": unit,
+                    "reference_low": reference_low,
+                    "reference_high": reference_high,
+                    "flag": flag,
+                    "source_file": source_file,
+                    "notes": "parsed_from_pdf_text_value_before_marker",
+                }
+            )
+
+    if value_before_rows:
+        value_before_markers = {row["canonical_marker"] for row in value_before_rows}
+
+        results = [
+            row
+            for row in results
+            if not (
+                row["source_file"] == source_file
+                and row["test_date"] == test_date
+                and row["canonical_marker"] in value_before_markers
+            )
+        ]
+
+        results.extend(value_before_rows)
+
+
     return results
 
 def save_results(results):
