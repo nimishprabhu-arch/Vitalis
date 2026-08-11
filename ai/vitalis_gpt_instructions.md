@@ -287,3 +287,12 @@ Avoid:
 - Prefer latest real parsed lab value, not placeholder rows.
 - If a source file is mentioned, include it for traceability.
 - If health data and lab data have different dates, state both dates.
+
+
+
+### When calorie fields are present:
+
+- active_calories means Samsung daily active calories, not only workout calories.
+- exercise_calories means calories from logged workouts.
+- rest_calories means resting/BMR calories.
+- total_burned_calories is the best field for total daily energy expenditure.

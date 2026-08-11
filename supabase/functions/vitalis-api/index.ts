@@ -124,6 +124,25 @@ function normalizeSnapshot(payload: Record<string, unknown>) {
   if (!snapshotDate) {
     throw new Error("Missing required field: snapshot_date");
   }
+  
+  
+  function normalizeCalorieSnapshot(payload: Record<string, unknown>) {
+  const snapshotDate = pick(payload, "snapshot_date", "date");
+
+  if (!snapshotDate) {
+    throw new Error("Missing required field: snapshot_date");
+  }
+
+  return {
+    snapshot_date: textOrNull(snapshotDate),
+    active_calories: realOrNull(pick(payload, "active_calories", "activeCalories")),
+    active_time_minutes: realOrNull(pick(payload, "active_time_minutes", "activeTimeMinutes")),
+    rest_calories: realOrNull(pick(payload, "rest_calories", "restCalories")),
+    exercise_calories: realOrNull(pick(payload, "exercise_calories", "exerciseCalories")),
+    total_burned_calories: realOrNull(pick(payload, "total_burned_calories", "totalBurnedCalories")),
+    source: textOrNull(pick(payload, "source", "source")) ?? "samsung_calorie_export",
+  };
+}
 
   return {
     snapshot_date: textOrNull(snapshotDate),
@@ -170,6 +189,24 @@ vitalis_recovery_score: integerOrNull(pick(payload, "vitalis_recovery_score", "v
 vitalis_training_load_score: integerOrNull(pick(payload, "vitalis_training_load_score", "vitalisTrainingLoadScore")),
 vitalis_coach_note: textOrNull(pick(payload, "vitalis_coach_note", "vitalisCoachNote")),
     source: textOrNull(pick(payload, "source", "source")) ?? "vitalis_android",
+  };
+}
+
+function normalizeCalorieSnapshot(payload: Record<string, unknown>) {
+  const snapshotDate = pick(payload, "snapshot_date", "date");
+
+  if (!snapshotDate) {
+    throw new Error("Missing required field: snapshot_date");
+  }
+
+  return {
+    snapshot_date: textOrNull(snapshotDate),
+    active_calories: realOrNull(pick(payload, "active_calories", "activeCalories")),
+    active_time_minutes: realOrNull(pick(payload, "active_time_minutes", "activeTimeMinutes")),
+    rest_calories: realOrNull(pick(payload, "rest_calories", "restCalories")),
+    exercise_calories: realOrNull(pick(payload, "exercise_calories", "exerciseCalories")),
+    total_burned_calories: realOrNull(pick(payload, "total_burned_calories", "totalBurnedCalories")),
+    source: textOrNull(pick(payload, "source", "source")) ?? "samsung_calorie_export",
   };
 }
 
@@ -233,6 +270,10 @@ function snapshotMessageLines(snapshot: any) {
     `steps: ${snapshot.steps}`,
     `distance_meters: ${round(snapshot.distance_meters)}`,
     `active_calories: ${round(snapshot.active_calories)}`,
+    `active_time_minutes: ${round(snapshot.active_time_minutes)}`,
+    `rest_calories: ${round(snapshot.rest_calories)}`,
+    `exercise_calories: ${round(snapshot.exercise_calories)}`,
+    `total_burned_calories: ${round(snapshot.total_burned_calories)}`,
     `average_heart_rate: ${round(snapshot.average_heart_rate)}`,
     `minimum_heart_rate: ${snapshot.minimum_heart_rate}`,
     `maximum_heart_rate: ${snapshot.maximum_heart_rate}`,
@@ -933,6 +974,46 @@ Deno.serve(async (request) => {
       });
     }
 
+if (request.method === "POST" && path === "upload-calorie-snapshots") {
+  const payload = await request.json();
+  const rows = Array.isArray(payload) ? payload : payload.rows;
+
+  if (!Array.isArray(rows)) {
+    throw new Error("Expected an array or { rows: [...] } payload.");
+  }
+
+  const normalizedRows = rows.map((row) =>
+    normalizeCalorieSnapshot(row as Record<string, unknown>)
+  );
+
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/health_snapshots?on_conflict=snapshot_date`,
+    {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=representation",
+      },
+      body: JSON.stringify(normalizedRows),
+    }
+  );
+
+  const body = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Supabase ${response.status}: ${body}`);
+  }
+
+  return jsonResponse({
+    status: "ok",
+    message: "Calorie snapshots uploaded.",
+    uploaded_rows: normalizedRows.length,
+  });
+}
+
+
     if (request.method !== "GET") {
       return jsonResponse(
         {
@@ -1059,6 +1140,10 @@ Deno.serve(async (request) => {
         `distance_meters: ${snapshot.distance_meters}`,
         `active_calories: ${snapshot.active_calories}`,
         `average_heart_rate: ${snapshot.average_heart_rate}`,
+		`active_time_minutes: ${snapshot.active_time_minutes}`,
+`rest_calories: ${snapshot.rest_calories}`,
+`exercise_calories: ${snapshot.exercise_calories}`,
+`total_burned_calories: ${snapshot.total_burned_calories}`,
         `minimum_heart_rate: ${snapshot.minimum_heart_rate}`,
         `maximum_heart_rate: ${snapshot.maximum_heart_rate}`,
         `resting_heart_rate: ${snapshot.resting_heart_rate}`,
@@ -1247,6 +1332,8 @@ Deno.serve(async (request) => {
         "/last-30-training-flat",
         "/last-30-training-text",
         "/upload-snapshot",
+		"/upload-calorie-snapshots",
+		"/upload-snapshot",
       ],
     });
   } catch (error) {

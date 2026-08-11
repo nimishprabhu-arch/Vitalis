@@ -4,51 +4,25 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-DATABASE_PATH = ROOT / "database" / "vitalis.db"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATABASE_PATH = PROJECT_ROOT / "database" / "vitalis.db"
 
 SUPABASE_URL = "https://ltnlhxsdmcsjpcpxvvxl.supabase.co"
 SUPABASE_KEY = "sb_publishable_U55ZW10vDw7fX-kVmWVl0w_8nXnsrOW"
-
 TABLE_NAME = "health_snapshots"
+
 BATCH_SIZE = 250
 
-INTEGER_FIELDS = {
-    "steps",
-    "minimum_heart_rate",
-    "maximum_heart_rate",
-    "resting_heart_rate",
-    "sleep_total_minutes",
-    "deep_sleep_minutes",
-    "rem_sleep_minutes",
-    "light_sleep_minutes",
-    "awake_minutes",
-    "sleep_session_count",
-    "workout_session_count",
-    "workout_total_duration_minutes",
-}
-
-REAL_FIELDS = {
-    "distance_meters",
-    "active_calories",
-    "floors",
-    "average_heart_rate",
-    "sleep_score",
-    "sleep_efficiency",
-    "physical_recovery",
-    "mental_recovery",
-    "energy_score",
-    "energy_sleep_score",
-    "energy_activity_score",
-    "heart_health_score",
-}
-
-FIELDS = [
+COLUMNS = [
     "snapshot_date",
     "saved_at",
     "steps",
     "distance_meters",
     "active_calories",
+    "active_time_minutes",
+    "rest_calories",
+    "exercise_calories",
+    "total_burned_calories",
     "floors",
     "average_heart_rate",
     "minimum_heart_rate",
@@ -62,7 +36,16 @@ FIELDS = [
     "sleep_session_count",
     "workout_session_count",
     "workout_total_duration_minutes",
-    "source",
+    "workout_total_calories",
+    "workout_distance_meters",
+    "workout_average_heart_rate",
+    "workout_minimum_heart_rate",
+    "workout_maximum_heart_rate",
+    "workout_low_intensity_minutes",
+    "workout_weight_control_minutes",
+    "workout_aerobic_minutes",
+    "workout_anaerobic_minutes",
+    "workout_max_intensity_minutes",
     "sleep_score",
     "sleep_efficiency",
     "physical_recovery",
@@ -71,92 +54,113 @@ FIELDS = [
     "energy_sleep_score",
     "energy_activity_score",
     "heart_health_score",
+    "vitalis_readiness_score",
+    "vitalis_sleep_quality_score",
+    "vitalis_recovery_score",
+    "vitalis_training_load_score",
+    "vitalis_coach_note",
+    "source",
 ]
 
-def normalize_value(field, value):
-    if value is None:
-        return None
 
-    if field in INTEGER_FIELDS:
-        try:
-            return int(round(float(value)))
-        except (TypeError, ValueError):
-            return None
+INTEGER_COLUMNS = {
+    "steps",
+    "minimum_heart_rate",
+    "maximum_heart_rate",
+    "resting_heart_rate",
+    "sleep_total_minutes",
+    "deep_sleep_minutes",
+    "rem_sleep_minutes",
+    "light_sleep_minutes",
+    "awake_minutes",
+    "sleep_session_count",
+    "workout_session_count",
+    "workout_total_duration_minutes",
+    "workout_low_intensity_minutes",
+    "workout_weight_control_minutes",
+    "workout_aerobic_minutes",
+    "workout_anaerobic_minutes",
+    "workout_max_intensity_minutes",
+}
 
-    if field in REAL_FIELDS:
-        try:
-            return float(value)
-        except (TypeError, ValueError):
-            return None
 
-    return value
+def clean_row(row):
+    cleaned = {}
 
-def load_snapshots():
-    connection = sqlite3.connect(DATABASE_PATH)
-    connection.row_factory = sqlite3.Row
+    for key, value in dict(row).items():
+        if key not in COLUMNS:
+            continue
 
-    rows = connection.execute(
-        f"""
-        SELECT {", ".join(FIELDS)}
-        FROM daily_health_snapshots
-        ORDER BY snapshot_date ASC
+        if key in INTEGER_COLUMNS and value is not None:
+            cleaned[key] = int(round(float(value)))
+        else:
+            cleaned[key] = value
+
+    return cleaned
+
+
+def load_rows():
+    with sqlite3.connect(DATABASE_PATH) as connection:
+        connection.row_factory = sqlite3.Row
+
+        available_columns = {
+            row["name"]
+            for row in connection.execute("pragma table_info(daily_health_snapshots)")
+        }
+
+        selected_columns = [column for column in COLUMNS if column in available_columns]
+
+        query = f"""
+            SELECT {", ".join(selected_columns)}
+            FROM daily_health_snapshots
+            ORDER BY snapshot_date ASC
         """
-    ).fetchall()
 
-    connection.close()
+        return [clean_row(row) for row in connection.execute(query).fetchall()]
 
-    snapshots = []
 
-    for row in rows:
-        snapshot = {}
-        for field in FIELDS:
-            snapshot[field] = normalize_value(field, row[field])
-        snapshots.append(snapshot)
+def upload_batch(rows):
+    if not rows:
+        return
 
-    return snapshots
-
-def upload_batch(batch, supabase_url, supabase_key):
-    url = f"{supabase_url}/rest/v1/{TABLE_NAME}?on_conflict=snapshot_date"
-
-    data = json.dumps(batch).encode("utf-8")
+    url = f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}?on_conflict=snapshot_date"
 
     request = urllib.request.Request(
         url,
-        data=data,
-        method="POST",
+        data=json.dumps(rows).encode("utf-8"),
         headers={
-            "apikey": supabase_key,
-            "Authorization": f"Bearer {supabase_key}",
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
             "Content-Type": "application/json",
             "Prefer": "resolution=merge-duplicates",
         },
+        method="POST",
     )
 
     try:
         with urllib.request.urlopen(request) as response:
-            return response.status, response.read().decode("utf-8")
+            response.read()
     except urllib.error.HTTPError as error:
-        body = error.read().decode("utf-8")
+        body = error.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"Supabase error {error.code}: {body}") from error
 
+
 def main():
-    if SUPABASE_KEY == "PASTE_YOUR_SUPABASE_PUBLISHABLE_KEY_HERE":
-        raise RuntimeError("Paste your Supabase publishable key before running this script.")
+    if SUPABASE_KEY == "PASTE_YOUR_SUPABASE_KEY_HERE":
+        raise RuntimeError("Paste your Supabase key before running this script.")
 
-    snapshots = load_snapshots()
+    rows = load_rows()
+    total = len(rows)
 
-    print(f"Snapshots to upload: {len(snapshots)}")
+    print(f"Snapshots to upload: {total}")
 
-    uploaded = 0
-
-    for index in range(0, len(snapshots), BATCH_SIZE):
-        batch = snapshots[index:index + BATCH_SIZE]
-        upload_batch(batch, SUPABASE_URL, SUPABASE_KEY)
-
-        uploaded += len(batch)
-        print(f"Uploaded: {uploaded}/{len(snapshots)}")
+    for index in range(0, total, BATCH_SIZE):
+        batch = rows[index:index + BATCH_SIZE]
+        upload_batch(batch)
+        print(f"Uploaded: {min(index + BATCH_SIZE, total)}/{total}")
 
     print("Historical Supabase upload complete.")
+
 
 if __name__ == "__main__":
     main()
