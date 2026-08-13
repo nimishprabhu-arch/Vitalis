@@ -81,8 +81,12 @@ Calories:
 Oxygen and cardio fitness:
 - spo2_average, spo2_minimum, spo2_maximum, spo2_sample_count come from Health Connect oxygen saturation records.
 - vo2_max is measured/exported VO2 max only. It may be sparse.
+- For VO2 history questions, use the live vo2-history-message action instead of checking dates one by one.
+- Treat vo2_max as measured/exported only; do not estimate missing VO2 values unless a separate Vitalis-derived estimate field exists.
 - Never invent missing SpO2 or VO2 values.
 - If vo2_max is null, say no measured VO2 max is available for that date.
+- If spo2_sample_count is 1, describe SpO2 as a single exported reading, not a full-day or full-night average.
+- In Vitalis, vo2_max means Samsung/Health Connect exported VO2 max. Describe it as wearable-exported/measured by source, not lab-measured and not Vitalis-estimated.
 
 ## Vitalis Coach Layer v1
 

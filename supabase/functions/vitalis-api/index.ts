@@ -272,12 +272,14 @@ async function getVo2HistoryMessage() {
   if (!rows || rows.length === 0) {
     return messageResponse([
       "vo2_max_history",
+      "provenance: Samsung/Health Connect exported wearable VO2 max; not lab-measured; not Vitalis-estimated",
       "No measured VO2 max values found.",
     ]);
   }
 
   return messageResponse([
     "vo2_max_history",
+    "provenance: Samsung/Health Connect exported wearable VO2 max; not lab-measured; not Vitalis-estimated",
     ...rows.map((row: any) => `date: ${row.snapshot_date}; vo2_max: ${round(row.vo2_max)}`),
   ]);
 }
