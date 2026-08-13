@@ -118,9 +118,51 @@ def main():
 
             vitalis_connection.commit()
 
+        sleep_hr_rows = health_connection.execute(
+            """
+            select
+                s.local_date,
+                avg(h.beats_per_minute) as average_hr,
+                min(h.beats_per_minute) as minimum_hr,
+                max(h.beats_per_minute) as maximum_hr,
+                count(*) as sample_count
+            from sleep_session_record_table s
+            join heart_rate_record_series_table h
+              on h.epoch_millis between s.start_time and s.end_time
+            group by s.local_date
+            """
+        ).fetchall()
+
+        sleep_hr_updated = 0
+
+        for local_date, average_hr, minimum_hr, maximum_hr, sample_count in sleep_hr_rows:
+            snapshot_date = epoch_day_to_date(local_date)
+
+            vitalis_connection.execute(
+                """
+                update daily_health_snapshots
+                set
+                    sleep_average_heart_rate = ?,
+                    sleep_minimum_heart_rate = ?,
+                    sleep_maximum_heart_rate = ?,
+                    sleep_heart_rate_sample_count = ?
+                where snapshot_date = ?
+                """,
+                (
+                    round(average_hr, 2) if average_hr is not None else None,
+                    minimum_hr,
+                    maximum_hr,
+                    sample_count,
+                    snapshot_date,
+                ),
+            )
+
+            sleep_hr_updated += vitalis_connection.total_changes > 0
+
     print("Health Connect DB metrics import complete.")
     print(f"SpO2 rows updated: {spo2_updated}")
     print(f"VO2 max rows updated: {vo2_updated}")
+    print(f"Sleep HR rows updated: {sleep_hr_updated}")
 
 
 if __name__ == "__main__":

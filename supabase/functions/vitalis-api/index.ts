@@ -305,7 +305,13 @@ function snapshotMessageLines(snapshot: any) {
     `awake_minutes: ${snapshot.awake_minutes}`,
     `sleep_session_count: ${snapshot.sleep_session_count}`,
     `sleep_score: ${round(snapshot.sleep_score)}`,
+`sleep_average_heart_rate: ${round(snapshot.sleep_average_heart_rate)}`,
+`sleep_minimum_heart_rate: ${round(snapshot.sleep_minimum_heart_rate)}`,
+`sleep_maximum_heart_rate: ${round(snapshot.sleep_maximum_heart_rate)}`,
+`sleep_heart_rate_sample_count: ${snapshot.sleep_heart_rate_sample_count}`,
 `spo2_average: ${round(snapshot.spo2_average)}`,
+	
+
 `spo2_minimum: ${round(snapshot.spo2_minimum)}`,
 `spo2_maximum: ${round(snapshot.spo2_maximum)}`,
 `spo2_sample_count: ${snapshot.spo2_sample_count}`,

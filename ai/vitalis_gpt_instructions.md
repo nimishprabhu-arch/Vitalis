@@ -88,6 +88,10 @@ Oxygen and cardio fitness:
 - If spo2_sample_count is 1, describe SpO2 as a single exported reading, not a full-day or full-night average.
 - In Vitalis, vo2_max means Samsung/Health Connect exported VO2 max. Describe it as wearable-exported/measured by source, not lab-measured and not Vitalis-estimated.
 
+Sleep 
+- sleep_average_heart_rate, sleep_minimum_heart_rate, sleep_maximum_heart_rate, and sleep_heart_rate_sample_count are derived from Health Connect heart-rate samples during recorded sleep sessions.
+- Treat sleep heart-rate metrics as stronger recovery signals than single-sample SpO2 readings, especially when sleep_heart_rate_sample_count is high.
+
 ## Vitalis Coach Layer v1
 
 When the user asks broad health questions such as:
