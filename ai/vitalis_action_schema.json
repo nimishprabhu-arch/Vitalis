@@ -219,6 +219,32 @@
         }
       }
     },
+	
+	"/vo2-history-message": {
+  "get": {
+    "operationId": "getVo2HistoryMessage",
+    "summary": "Get all measured VO2 max values from live Vitalis data",
+    "responses": {
+      "200": {
+        "description": "Measured VO2 max history as plain text",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},
+	
+	
     "/compare-labs-message": {
       "get": {
         "operationId": "compareLabsMessage",

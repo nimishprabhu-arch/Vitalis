@@ -264,6 +264,24 @@ async function getSnapshotByDate(snapshotDate: string) {
   };
 }
 
+async function getVo2HistoryMessage() {
+  const rows = await supabaseGet(
+    "health_snapshots?select=snapshot_date,vo2_max&vo2_max=not.is.null&order=snapshot_date.asc"
+  );
+
+  if (!rows || rows.length === 0) {
+    return messageResponse([
+      "vo2_max_history",
+      "No measured VO2 max values found.",
+    ]);
+  }
+
+  return messageResponse([
+    "vo2_max_history",
+    ...rows.map((row: any) => `date: ${row.snapshot_date}; vo2_max: ${round(row.vo2_max)}`),
+  ]);
+}
+
 function snapshotMessageLines(snapshot: any) {
   return [
     `snapshot_date: ${snapshot.snapshot_date}`,
@@ -1067,6 +1085,11 @@ if (request.method === "POST" && path === "upload-calorie-snapshots") {
 
       return messageResponse(compareMessageLines(result.summaryA, result.summaryB));
     }
+	
+	
+	if (path === "vo2-history-message") {
+  return await getVo2HistoryMessage();
+}
 
 
     if (path === "snapshot-message") {
@@ -1350,6 +1373,7 @@ if (request.method === "POST" && path === "upload-calorie-snapshots") {
         "/upload-snapshot",
 		"/upload-calorie-snapshots",
 		"/upload-snapshot",
+		"/vo2-history-message",
       ],
     });
   } catch (error) {
