@@ -284,6 +284,42 @@ async function getVo2HistoryMessage() {
   ]);
 }
 
+async function getSleepHrHistoryMessage(request: Request) {
+  const url = new URL(request.url);
+  const all = url.searchParams.get("all") === "true";
+  const requestedDays = Number(url.searchParams.get("days") ?? 90);
+  const days = Number.isFinite(requestedDays)
+    ? Math.min(Math.max(Math.round(requestedDays), 1), 1000)
+    : 90;
+
+  const orderAndLimit = all
+    ? "order=snapshot_date.asc"
+    : `order=snapshot_date.desc&limit=${days}`;
+
+  const rows = await supabaseGet(
+    `health_snapshots?select=snapshot_date,sleep_average_heart_rate,sleep_minimum_heart_rate,sleep_maximum_heart_rate,sleep_heart_rate_sample_count&sleep_average_heart_rate=not.is.null&${orderAndLimit}`
+  );
+
+  if (!rows || rows.length === 0) {
+    return messageResponse([
+      all ? "sleep_hr_history_all" : `sleep_hr_history_latest_${days}_days`,
+      "source: Health Connect heart-rate samples during recorded sleep sessions",
+      "No sleep heart-rate history available.",
+    ]);
+  }
+
+  const outputRows = all ? rows : [...rows].reverse();
+
+  return messageResponse([
+    all ? "sleep_hr_history_all" : `sleep_hr_history_latest_${days}_days`,
+    "source: Health Connect heart-rate samples during recorded sleep sessions",
+    ...outputRows.map(
+      (row: any) =>
+        `date: ${row.snapshot_date}; sleep_average_heart_rate: ${round(row.sleep_average_heart_rate)}; sleep_minimum_heart_rate: ${round(row.sleep_minimum_heart_rate)}; sleep_maximum_heart_rate: ${round(row.sleep_maximum_heart_rate)}; sleep_heart_rate_sample_count: ${row.sleep_heart_rate_sample_count}`
+    ),
+  ]);
+}
+
 function snapshotMessageLines(snapshot: any) {
   return [
     `snapshot_date: ${snapshot.snapshot_date}`,
@@ -297,6 +333,10 @@ function snapshotMessageLines(snapshot: any) {
     `average_heart_rate: ${round(snapshot.average_heart_rate)}`,
     `minimum_heart_rate: ${snapshot.minimum_heart_rate}`,
     `maximum_heart_rate: ${snapshot.maximum_heart_rate}`,
+	`daily_hr_average: ${round(snapshot.daily_hr_average)}`,
+	`daily_hr_minimum: ${round(snapshot.daily_hr_minimum)}`,
+	`daily_hr_maximum: ${round(snapshot.daily_hr_maximum)}`,
+	`daily_hr_sample_count: ${snapshot.daily_hr_sample_count}`,
     `resting_heart_rate: ${snapshot.resting_heart_rate}`,
     `sleep_total_minutes: ${snapshot.sleep_total_minutes}`,
     `deep_sleep_minutes: ${snapshot.deep_sleep_minutes}`,
@@ -305,11 +345,11 @@ function snapshotMessageLines(snapshot: any) {
     `awake_minutes: ${snapshot.awake_minutes}`,
     `sleep_session_count: ${snapshot.sleep_session_count}`,
     `sleep_score: ${round(snapshot.sleep_score)}`,
-`sleep_average_heart_rate: ${round(snapshot.sleep_average_heart_rate)}`,
-`sleep_minimum_heart_rate: ${round(snapshot.sleep_minimum_heart_rate)}`,
-`sleep_maximum_heart_rate: ${round(snapshot.sleep_maximum_heart_rate)}`,
-`sleep_heart_rate_sample_count: ${snapshot.sleep_heart_rate_sample_count}`,
-`spo2_average: ${round(snapshot.spo2_average)}`,
+	`sleep_average_heart_rate: ${round(snapshot.sleep_average_heart_rate)}`,
+	`sleep_minimum_heart_rate: ${round(snapshot.sleep_minimum_heart_rate)}`,
+	`sleep_maximum_heart_rate: ${round(snapshot.sleep_maximum_heart_rate)}`,
+	`sleep_heart_rate_sample_count: ${snapshot.sleep_heart_rate_sample_count}`,
+	`spo2_average: ${round(snapshot.spo2_average)}`,
 	
 
 `spo2_minimum: ${round(snapshot.spo2_minimum)}`,
@@ -1099,6 +1139,9 @@ if (request.method === "POST" && path === "upload-calorie-snapshots") {
   return await getVo2HistoryMessage();
 }
 
+if (path === "sleep-hr-history-message") {
+  return await getSleepHrHistoryMessage(request);
+}
 
     if (path === "snapshot-message") {
       const date = new URL(request.url).searchParams.get("date");
@@ -1382,6 +1425,7 @@ if (request.method === "POST" && path === "upload-calorie-snapshots") {
 		"/upload-calorie-snapshots",
 		"/upload-snapshot",
 		"/vo2-history-message",
+		"/sleep-hr-history-message",
       ],
     });
   } catch (error) {

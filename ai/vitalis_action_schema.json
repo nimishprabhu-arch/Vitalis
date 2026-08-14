@@ -243,7 +243,55 @@
     }
   }
 },
-	
+
+
+"/sleep-hr-history-message": {
+  "get": {
+    "operationId": "getSleepHrHistoryMessage",
+    "summary": "Get sleep heart-rate history from live Vitalis data",
+    "parameters": [
+      {
+        "name": "days",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 90
+        },
+        "description": "Number of latest days to return. Defaults to 90."
+      },
+      {
+        "name": "all",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "boolean",
+          "default": false
+        },
+        "description": "Set true to return all imported sleep heart-rate history."
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Sleep heart-rate history as plain text",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},
 	
     "/compare-labs-message": {
       "get": {
