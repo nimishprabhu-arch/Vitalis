@@ -293,6 +293,31 @@
   }
 },
 	
+	
+"/latest-workouts-message": {
+  "get": {
+    "operationId": "getLatestWorkoutsMessage",
+    "summary": "Get latest workout sessions from live Vitalis data",
+    "responses": {
+      "200": {
+        "description": "Latest workouts as plain text",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},
+
     "/compare-labs-message": {
       "get": {
         "operationId": "compareLabsMessage",

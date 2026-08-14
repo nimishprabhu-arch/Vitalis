@@ -284,6 +284,28 @@ async function getVo2HistoryMessage() {
   ]);
 }
 
+
+async function getLatestWorkoutsMessage() {
+  const rows = await supabaseGet(
+    "workouts?select=workout_date,exercise_type_label,duration_minutes,calories,distance_meters,average_heart_rate,minimum_heart_rate,maximum_heart_rate&order=workout_date.desc,start_time.desc&limit=20"
+  );
+
+  if (!rows || rows.length === 0) {
+    return messageResponse([
+      "latest_workouts",
+      "No workout records available.",
+    ]);
+  }
+
+  return messageResponse([
+    "latest_workouts",
+    ...rows.map(
+      (row: any) =>
+        `date: ${row.workout_date}; type: ${row.exercise_type_label ?? "Unavailable"}; duration_minutes: ${round(row.duration_minutes)}; calories: ${round(row.calories)}; distance_meters: ${round(row.distance_meters)}; average_heart_rate: ${round(row.average_heart_rate)}; minimum_heart_rate: ${round(row.minimum_heart_rate)}; maximum_heart_rate: ${round(row.maximum_heart_rate)}`
+    ),
+  ]);
+}
+
 async function getSleepHrHistoryMessage(request: Request) {
   const url = new URL(request.url);
   const all = url.searchParams.get("all") === "true";
@@ -1139,6 +1161,10 @@ if (request.method === "POST" && path === "upload-calorie-snapshots") {
   return await getVo2HistoryMessage();
 }
 
+if (path === "latest-workouts-message") {
+  return await getLatestWorkoutsMessage();
+}
+
 if (path === "sleep-hr-history-message") {
   return await getSleepHrHistoryMessage(request);
 }
@@ -1426,6 +1452,7 @@ if (path === "sleep-hr-history-message") {
 		"/upload-snapshot",
 		"/vo2-history-message",
 		"/sleep-hr-history-message",
+		"/latest-workouts-message",
       ],
     });
   } catch (error) {
