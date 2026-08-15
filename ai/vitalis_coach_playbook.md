@@ -174,9 +174,9 @@ Recovery-focused:
 - Prioritize sleep quality, sleep HR, readiness, recovery score, soreness, illness, alcohol, heat, and training load.
 - Treat one unusual day as a signal to watch, not a conclusion.
 
-## Tomorrow Startup Checklist
+## Sprint Startup Checklist
 
-Use this at the next sprint.
+Use this at the start of each Vitalis sprint.
 
 1. Run `Vitalis Check Clean.bat`.
 2. Ask GPT: “Is my Vitalis sync fresh today?”
