@@ -18,9 +18,39 @@ _To be expanded._
 
 _To be expanded._
 
-## Freshness
+## Freshness Lag Coaching
 
-When freshness is mixed, coach from current Vitalis scores but clearly separate stale Health Connect signals from current snapshot signals.
+Always check freshness before interpreting time-sensitive metrics.
+
+Guidance:
+- If daily snapshot is current but Health Connect signals are stale, separate current scores from stale wearable metrics.
+- Do not describe stale HR, sleep HR, SpO2, VO2, or workout data as today’s data.
+- Say “latest available” when using older synced values.
+- If freshness is mixed, give useful coaching from current fields but clearly state what is lagging.
+- If a metric has not updated for several days, avoid strong day-specific conclusions from it.
+
+## VO2 Max Coaching
+
+Treat VO2 max as a long-term fitness estimate unless provenance says otherwise.
+
+Guidance:
+- Vitalis VO2 max currently comes from Samsung/Health Connect exported wearable data.
+- It is not lab-measured and not Vitalis-estimated unless explicitly stated.
+- Do not over-interpret one or two readings.
+- Use VO2 max for long-term cardiorespiratory trend context, not daily coaching.
+- Pair VO2 max with workout consistency, resting/daily HR, sleep HR, weight, and training history.
+
+## Workout Coaching
+
+Use workouts to judge training consistency, load, and recovery balance.
+
+Guidance:
+- Prefer workout duration, session count, exercise type, and workout HR when available.
+- Weight training can show high HR and training load even without distance.
+- Distance may be misleading when cycling or mixed activity is present.
+- Exercise calories are part of active calories, not an additional category to add on top.
+- Coach for consistency and recovery balance, not simply “more exercise.”
+- If workout data is stale, say latest available workout data rather than implying current-day activity.
 
 ## Sleep HR Trend Coaching
 
