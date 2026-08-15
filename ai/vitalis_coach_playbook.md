@@ -109,3 +109,78 @@ Labs:
 18. Compare my latest lipids with prior lipid reports.
 19. Are my glucose and kidney markers reassuring?
 20. Which lab values are missing, stale, or unavailable?
+
+## Daily Operating Checklist
+
+Use this checklist at the start or end of each Vitalis sprint.
+
+1. Check repo cleanliness.
+   - Run `Vitalis Check Clean.bat`.
+   - If pending changes appear, commit, stash, or intentionally park them before new work.
+
+2. Check data freshness.
+   - Ask GPT: “Is my Vitalis sync fresh today?”
+   - Confirm whether daily snapshot, Health Connect signals, workouts, labs, and calories are current or stale.
+
+3. If Health Connect data is stale.
+   - Check whether the Google Drive `Health Connect.zip` file was updated.
+   - If Drive is current but internal data is stale, wait for the next scheduled export before coding around it.
+   - Do not treat stale HR, sleep HR, SpO2, VO2, or workout data as current-day signals.
+
+4. Run one regression prompt after GPT changes.
+   - Use one prompt from the Regression Test Prompts section.
+   - Confirm the answer uses live data, respects freshness, and avoids overconfidence.
+
+5. Keep work scoped.
+   - Prefer one tiny sprint at a time.
+   - Avoid editing `index.ts` unless the change is clearly needed and testable.
+   - Commit clean, focused batches.
+   
+## Parked Tech Debt
+
+These items are intentionally parked until a focused sprint.
+
+- Health Connect freshness lag: Drive file may update while internal export data remains stale.
+- Calories automation: accurate calorie history currently depends on Samsung Health CSV export; Health Connect calorie records are incomplete/fragmented.
+- Android calorie permissions: possible future path, but risky because permissions previously broke refresh.
+- Trend endpoints: sleep HR, daily HR, workouts, labs, and calories need cleaner history actions.
+- Dashboards: future live visual dashboards for metrics, labs, workouts, and trends.
+- Food and macros: future integration for nutrition, macros, micros, and calorie intake.
+- Image/OCR lab reports: future parser support for image files and scanned reports.
+- Lab parser hardening: future layout handling for new labs, units, references, and report formats.
+- Unit normalization: future normalized trend views for Vitamin D, thyroid, lipids, and other unit-sensitive markers.
+
+## Coach Tone Patterns
+
+Use these tone patterns depending on the user’s question.
+
+Concise daily coach:
+- Start with the main actionable takeaway.
+- Separate current signals from stale signals.
+- Give 1–3 practical actions.
+
+Medical cautious:
+- Identify abnormal labs clearly.
+- Recommend clinician review when appropriate.
+- Avoid diagnosis, medication advice, or certainty beyond the data.
+- Remind that parsed lab reports should be verified against originals.
+
+Training-focused:
+- Balance consistency, load, and recovery.
+- Do not simply recommend more exercise.
+- Use workout history, readiness, recovery, sleep HR, and fatigue context together.
+
+Recovery-focused:
+- Prioritize sleep quality, sleep HR, readiness, recovery score, soreness, illness, alcohol, heat, and training load.
+- Treat one unusual day as a signal to watch, not a conclusion.
+
+## Tomorrow Startup Checklist
+
+Use this at the next sprint.
+
+1. Run `Vitalis Check Clean.bat`.
+2. Ask GPT: “Is my Vitalis sync fresh today?”
+3. Check whether Health Connect moved beyond Aug 11 after the Aug 16 export.
+4. If freshness improved, continue with trend endpoints.
+5. If freshness is still stale, decide whether to accept lag or build a fallback.
+6. Avoid `index.ts` unless the sprint explicitly needs a new endpoint.
