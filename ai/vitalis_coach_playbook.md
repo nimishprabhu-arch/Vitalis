@@ -73,3 +73,39 @@ Guidance:
 - Pair SpO2 with sleep quality, sleep HR, respiratory symptoms, snoring, alcohol, illness, altitude, and device fit.
 - Do not diagnose sleep apnea or oxygen disorders from Vitalis data.
 - If low values persist or symptoms are present, suggest clinician review or a proper sleep study.
+
+## Regression Test Prompts
+
+Use these prompts after GPT instruction, schema, endpoint, or knowledge-file changes.
+
+Freshness:
+1. Is my Vitalis sync fresh today?
+2. Which Vitalis metrics are current and which are stale?
+3. Can I rely on today's workout, sleep HR, SpO2, and VO2 data?
+
+Coach intelligence:
+4. What are my top 3 health priorities right now based on live Vitalis data and labs?
+5. Give me today's coaching read using only live Vitalis data.
+6. What should I do differently today based on readiness, recovery, sleep, workouts, and labs?
+
+Heart rate and recovery:
+7. How should I interpret my recent sleep heart rate trend?
+8. Compare my daily HR and sleep HR signals.
+9. Is my heart rate data reliable enough for recovery coaching?
+
+SpO2 and VO2:
+10. My SpO2 was 91% with one sample. Should I worry?
+11. What does my VO2 max history show, and how reliable is it?
+12. Is my VO2 max measured, estimated, or wearable-derived?
+
+Workouts:
+13. Compare my latest workout consistency with my recovery status.
+14. Am I training too much, too little, or about right?
+15. How should I interpret workout calories versus active calories?
+
+Labs:
+16. What lab results should I discuss with my doctor next?
+17. What are my latest abnormal lab markers?
+18. Compare my latest lipids with prior lipid reports.
+19. Are my glucose and kidney markers reassuring?
+20. Which lab values are missing, stale, or unavailable?
