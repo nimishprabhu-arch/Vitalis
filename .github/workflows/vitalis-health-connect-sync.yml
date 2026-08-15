@@ -15,12 +15,17 @@ jobs:
       SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
 
     steps:
-      - name: Checkout repo
+      - name: Checkout sync files
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
           submodules: false
-          persist-credentials: false
+          sparse-checkout: |
+            cloud
+            importers
+            medical
+            database
+          sparse-checkout-cone-mode: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
