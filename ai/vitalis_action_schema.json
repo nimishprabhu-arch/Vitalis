@@ -318,6 +318,42 @@
   }
 },
 
+"/workouts-by-period-message": {
+  "get": {
+    "operationId": "getWorkoutsByPeriodMessage",
+    "summary": "Get workout sessions for a date, month, year, or date range",
+    "parameters": [
+      {
+        "name": "period",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Period as YYYY-MM-DD, YYYY-MM, YYYY, or YYYY-MM-DD..YYYY-MM-DD"
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Workout sessions for the requested period as plain text",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},
+
+
     "/compare-labs-message": {
       "get": {
         "operationId": "compareLabsMessage",

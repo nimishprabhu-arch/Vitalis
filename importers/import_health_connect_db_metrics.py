@@ -1,10 +1,16 @@
+import os
 import sqlite3
 from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VITALIS_DB = ROOT / "database" / "vitalis.db"
-HEALTH_CONNECT_DB = Path(r"C:\Users\nimis\Downloads\Health Connect\health_connect_export.db")
+HEALTH_CONNECT_DB = Path(
+    os.environ.get(
+        "HEALTH_CONNECT_DB_PATH",
+        r"C:\Users\nimis\Downloads\Health Connect\health_connect_export.db",
+    )
+)
 
 
 def epoch_day_to_date(epoch_day):

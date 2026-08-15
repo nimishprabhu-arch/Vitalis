@@ -306,6 +306,46 @@ async function getLatestWorkoutsMessage() {
   ]);
 }
 
+async function getWorkoutsByPeriodMessage(period: string) {
+  const range = parsePeriod(period);
+
+  const rows = await supabaseGet(
+    `workouts?select=workout_date,exercise_type_label,duration_minutes,calories,distance_meters,average_heart_rate,minimum_heart_rate,maximum_heart_rate&workout_date=gte.${range.start}&workout_date=lte.${range.end}&order=workout_date.asc,start_time.asc`
+  );
+
+  if (!rows || rows.length === 0) {
+    return messageResponse([
+      `workout_period: ${period}`,
+      `workout_range: ${range.start}..${range.end}`,
+      "No workouts found for this period.",
+    ]);
+  }
+
+  const totalDuration = rows.reduce(
+    (sum: number, row: any) => sum + Number(row.duration_minutes ?? 0),
+    0
+  );
+  const totalCalories = rows.reduce(
+    (sum: number, row: any) => sum + Number(row.calories ?? 0),
+    0
+  );
+  const workoutDays = new Set(rows.map((row: any) => row.workout_date)).size;
+
+  return messageResponse([
+    `workout_period: ${period}`,
+    `workout_range: ${range.start}..${range.end}`,
+    `workout_count: ${rows.length}`,
+    `workout_days: ${workoutDays}`,
+    `total_duration_minutes: ${round(totalDuration)}`,
+    `total_calories: ${round(totalCalories)}`,
+    "",
+    ...rows.map(
+      (row: any) =>
+        `date: ${row.workout_date}; type: ${row.exercise_type_label ?? "Unavailable"}; duration_minutes: ${round(row.duration_minutes)}; calories: ${round(row.calories)}; distance_meters: ${round(row.distance_meters)}; average_heart_rate: ${round(row.average_heart_rate)}; minimum_heart_rate: ${round(row.minimum_heart_rate)}; maximum_heart_rate: ${round(row.maximum_heart_rate)}`
+    ),
+  ]);
+}
+
 async function getSleepHrHistoryMessage(request: Request) {
   const url = new URL(request.url);
   const all = url.searchParams.get("all") === "true";
@@ -1165,6 +1205,23 @@ if (path === "latest-workouts-message") {
   return await getLatestWorkoutsMessage();
 }
 
+if (path === "workouts-by-period-message") {
+  const period = new URL(request.url).searchParams.get("period");
+
+  if (!period) {
+    return messageResponse([
+      "error: missing period parameter",
+      "examples:",
+      "/workouts-by-period-message?period=2026-08-08",
+      "/workouts-by-period-message?period=2026-08",
+      "/workouts-by-period-message?period=2026",
+      "/workouts-by-period-message?period=2026-07-01..2026-07-31",
+    ]);
+  }
+
+  return await getWorkoutsByPeriodMessage(period);
+}
+
 if (path === "sleep-hr-history-message") {
   return await getSleepHrHistoryMessage(request);
 }
@@ -1453,6 +1510,7 @@ if (path === "sleep-hr-history-message") {
 		"/vo2-history-message",
 		"/sleep-hr-history-message",
 		"/latest-workouts-message",
+		"/workouts-by-period-message?period=YYYY-MM-DD",
       ],
     });
   } catch (error) {

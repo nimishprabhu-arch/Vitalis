@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import os
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -7,8 +8,16 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATABASE_PATH = PROJECT_ROOT / "database" / "vitalis.db"
 
-SUPABASE_URL = "https://ltnlhxsdmcsjpcpxvvxl.supabase.co"
-SUPABASE_KEY = "sb_publishable_U55ZW10vDw7fX-kVmWVl0w_8nXnsrOW"
+SUPABASE_URL = os.environ.get(
+    "SUPABASE_URL",
+    "https://ltnlhxsdmcsjpcpxvvxl.supabase.co",
+)
+
+SUPABASE_KEY = os.environ.get(
+    "SUPABASE_KEY",
+    "sb_publishable_U55ZW10vDw7fX-kVmWVl0w_8nXnsrOW",
+)
+
 TABLE_NAME = "health_snapshots"
 
 BATCH_SIZE = 250
