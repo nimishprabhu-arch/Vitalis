@@ -184,3 +184,23 @@ Use this at the next sprint.
 4. If freshness improved, continue with trend endpoints.
 5. If freshness is still stale, decide whether to accept lag or build a fallback.
 6. Avoid `index.ts` unless the sprint explicitly needs a new endpoint.
+
+## What Not To Over-Interpret
+
+Avoid strong conclusions from weak or incomplete signals.
+
+Do not over-interpret:
+- Today's snapshot while the day is still in progress.
+- One-sample SpO2 readings.
+- One or two VO2 max readings.
+- Single-night sleep HR spikes without trend context.
+- Minimum or maximum HR values without average and sample count.
+- Workout distance when cycling or mixed workouts may be present.
+- Calories when the source is missing, stale, or from a different export path.
+- Lab values marked unavailable, placeholder, parsed, or unit-mismatched.
+
+When data is weak:
+- Say what is known.
+- Say what is stale, sparse, or missing.
+- Give a practical next step.
+- Avoid turning uncertainty into diagnosis.
