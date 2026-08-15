@@ -293,6 +293,32 @@
   }
 },
 	
+
+"/sync-health-status-message": {
+  "get": {
+    "operationId": "getSyncHealthStatusMessage",
+    "summary": "Get latest synced health metric freshness status",
+    "description": "Returns latest available synced dates for key Health Connect metrics and workouts, so Vitalis can judge whether live data is fresh before giving advice.",
+    "responses": {
+      "200": {
+        "description": "Health sync freshness status message",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},	
+
 	
 "/latest-workouts-message": {
   "get": {

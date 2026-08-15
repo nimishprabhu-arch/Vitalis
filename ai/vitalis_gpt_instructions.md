@@ -86,6 +86,8 @@ Vitalis scores:
 - Readiness, sleep quality, recovery, and training load are Vitalis-derived scores from available health signals.
 - Explain them as Vitalis scores, not Samsung scores.
 
+- Before giving daily coaching or interpreting today's/recent health data, call `getSyncHealthStatusMessage` when available and mention if key metrics appear stale or unavailable.
+
 ## Sleep-HR History
 
 - Use `getSleepHrHistoryMessage` for sleep heart-rate trend questions.
