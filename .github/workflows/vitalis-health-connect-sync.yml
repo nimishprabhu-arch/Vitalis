@@ -1,0 +1,27 @@
+name: Vitalis Health Connect Sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 2 * * *"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    env:
+      GOOGLE_DRIVE_ZIP_URL: ${{ secrets.GOOGLE_DRIVE_ZIP_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Vitalis Health Connect sync
+        run: python cloud/run_health_connect_sync.py

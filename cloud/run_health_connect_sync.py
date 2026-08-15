@@ -1,10 +1,13 @@
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+HEALTH_CONNECT_DB_PATH = ROOT / "tmp" / "health_connect" / "health_connect_export.db"
 
 STEPS = [
+    ["cloud/download_health_connect_zip.py"],
     ["importers/import_health_connect_db_metrics.py"],
     ["importers/import_health_connect_workouts.py"],
     ["cloud/upload_all_snapshots.py"],
@@ -14,8 +17,11 @@ STEPS = [
 
 def run_step(script_parts):
     script_path = ROOT / script_parts[0]
+    env = os.environ.copy()
+    env["HEALTH_CONNECT_DB_PATH"] = str(HEALTH_CONNECT_DB_PATH)
+
     print(f"\n=== Running {script_path.relative_to(ROOT)} ===")
-    subprocess.run([sys.executable, str(script_path)], cwd=ROOT, check=True)
+    subprocess.run([sys.executable, str(script_path)], cwd=ROOT, env=env, check=True)
 
 
 def main():
