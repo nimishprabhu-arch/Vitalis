@@ -284,6 +284,32 @@ async function getVo2HistoryMessage() {
   ]);
 }
 
+async function getSyncHealthStatusMessage() {
+  const rows = await supabaseGet(
+    "health_snapshots?select=snapshot_date,daily_hr_average,sleep_average_heart_rate,spo2_average,vo2_max,source&order=snapshot_date.desc&limit=60"
+  );
+
+  const workouts = await supabaseGet(
+    "workouts?select=workout_date&order=workout_date.desc&limit=1"
+  );
+
+  function latestDateFor(field: string) {
+    const row = rows.find((item: any) => item[field] !== null && item[field] !== undefined);
+    return row?.snapshot_date ?? "Unavailable";
+  }
+
+  return messageResponse([
+    "sync_health_status",
+    `latest_snapshot_date: ${rows[0]?.snapshot_date ?? "Unavailable"}`,
+    `latest_daily_hr_date: ${latestDateFor("daily_hr_average")}`,
+    `latest_sleep_hr_date: ${latestDateFor("sleep_average_heart_rate")}`,
+    `latest_spo2_date: ${latestDateFor("spo2_average")}`,
+    `latest_vo2_date: ${latestDateFor("vo2_max")}`,
+    `latest_workout_date: ${workouts[0]?.workout_date ?? "Unavailable"}`,
+    `latest_source: ${rows[0]?.source ?? "Unavailable"}`,
+    "note: This checks latest available synced dates by metric. It does not prove the phone export itself is fresh.",
+  ]);
+}
 
 async function getLatestWorkoutsMessage() {
   const rows = await supabaseGet(
@@ -1200,6 +1226,8 @@ if (request.method === "POST" && path === "upload-calorie-snapshots") {
 	if (path === "vo2-history-message") {
   return await getVo2HistoryMessage();
 }
+
+if (path === "sync-health-status-message") return await getSyncHealthStatusMessage();
 
 if (path === "latest-workouts-message") {
   return await getLatestWorkoutsMessage();
