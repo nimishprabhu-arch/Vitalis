@@ -15,17 +15,14 @@ jobs:
       SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
 
     steps:
-      - name: Checkout sync files
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          submodules: false
-          sparse-checkout: |
-            cloud
-            importers
-            medical
-            database
-          sparse-checkout-cone-mode: true
+      - name: Download repo source
+        run: |
+          curl -L \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -o repo.zip \
+            "https://github.com/${{ github.repository }}/archive/${{ github.sha }}.zip"
+          unzip repo.zip
+          mv Vitalis-* repo
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -33,4 +30,5 @@ jobs:
           python-version: "3.12"
 
       - name: Run Vitalis Health Connect sync
+        working-directory: repo
         run: python cloud/run_health_connect_sync.py
