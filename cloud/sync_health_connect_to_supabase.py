@@ -3,17 +3,46 @@ import os
 import sqlite3
 import urllib.error
 import urllib.request
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DB_PATH = Path(os.environ.get("HEALTH_CONNECT_DB_PATH", ROOT / "tmp" / "health_connect" / "health_connect_export.db"))
+DB_PATH = Path(
+    os.environ.get(
+        "HEALTH_CONNECT_DB_PATH",
+        ROOT / "tmp" / "health_connect" / "health_connect_export.db",
+    )
+)
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://ltnlhxsdmcsjpcpxvvxl.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "sb_publishable_U55ZW10vDw7fX-kVmWVl0w_8nXnsrOW")
+SUPABASE_URL = os.environ.get(
+    "SUPABASE_URL",
+    "https://ltnlhxsdmcsjpcpxvvxl.supabase.co",
+)
+SUPABASE_KEY = os.environ.get(
+    "SUPABASE_KEY",
+    "sb_publishable_U55ZW10vDw7fX-kVmWVl0w_8nXnsrOW",
+)
 
 SNAPSHOT_TABLE = "health_snapshots"
 WORKOUT_TABLE = "workouts"
+
+SNAPSHOT_COLUMNS = [
+    "snapshot_date",
+    "source",
+    "spo2_average",
+    "spo2_minimum",
+    "spo2_maximum",
+    "spo2_sample_count",
+    "vo2_max",
+    "daily_hr_average",
+    "daily_hr_minimum",
+    "daily_hr_maximum",
+    "daily_hr_sample_count",
+    "sleep_average_heart_rate",
+    "sleep_minimum_heart_rate",
+    "sleep_maximum_heart_rate",
+    "sleep_heart_rate_sample_count",
+]
 
 
 def epoch_day_to_date(epoch_day):
@@ -23,8 +52,6 @@ def epoch_day_to_date(epoch_day):
 def ms_to_iso(ms):
     if ms is None:
         return None
-    from datetime import datetime
-
     return datetime.fromtimestamp(ms / 1000).isoformat()
 
 
@@ -40,6 +67,16 @@ def exercise_label(code):
         58: "Weight training",
     }
     return labels.get(code, "Unknown")
+
+
+def table_exists(connection, table_name):
+    return (
+        connection.execute(
+            "select 1 from sqlite_master where type='table' and name=?",
+            (table_name,),
+        ).fetchone()
+        is not None
+    )
 
 
 def upsert(table, rows, conflict_column, batch_size=250):
@@ -58,7 +95,7 @@ def upsert(table, rows, conflict_column, batch_size=250):
     }
 
     for index in range(0, len(rows), batch_size):
-        batch = rows[index:index + batch_size]
+        batch = rows[index : index + batch_size]
         request = urllib.request.Request(
             url,
             data=json.dumps(batch).encode("utf-8"),
@@ -83,7 +120,13 @@ def read_snapshot_metric_rows(connection):
     rows_by_date = {}
 
     def row_for(snapshot_date):
-        rows_by_date.setdefault(snapshot_date, {"snapshot_date": snapshot_date, "source": "health_connect_cloud_sync"})
+        if snapshot_date not in rows_by_date:
+            rows_by_date[snapshot_date] = {
+                column: None for column in SNAPSHOT_COLUMNS
+            }
+            rows_by_date[snapshot_date]["snapshot_date"] = snapshot_date
+            rows_by_date[snapshot_date]["source"] = "health_connect_cloud_sync"
+
         return rows_by_date[snapshot_date]
 
     if table_exists(connection, "oxygen_saturation_record_table"):
@@ -91,56 +134,56 @@ def read_snapshot_metric_rows(connection):
             """
             select
                 local_date,
-                avg(percentage) as spo2_average,
-                min(percentage) as spo2_minimum,
-                max(percentage) as spo2_maximum,
-                count(*) as spo2_sample_count
+                avg(percentage),
+                min(percentage),
+                max(percentage),
+                count(*)
             from oxygen_saturation_record_table
             group by local_date
             """
         ):
-            snapshot_date = epoch_day_to_date(local_date)
-            row = row_for(snapshot_date)
-            row.update({
-                "spo2_average": round(avg_value, 2) if avg_value is not None else None,
-                "spo2_minimum": min_value,
-                "spo2_maximum": max_value,
-                "spo2_sample_count": count_value,
-            })
+            row = row_for(epoch_day_to_date(local_date))
+            row["spo2_average"] = round(avg_value, 2) if avg_value is not None else None
+            row["spo2_minimum"] = min_value
+            row["spo2_maximum"] = max_value
+            row["spo2_sample_count"] = count_value
 
     if table_exists(connection, "vo2_max_record_table"):
         for local_date, vo2_max in connection.execute(
             """
-            select local_date, max(vo2_milliliters_per_minute_kilogram)
+            select
+                local_date,
+                max(vo2_milliliters_per_minute_kilogram)
             from vo2_max_record_table
             group by local_date
             """
         ):
-            snapshot_date = epoch_day_to_date(local_date)
-            row_for(snapshot_date)["vo2_max"] = round(vo2_max, 2) if vo2_max is not None else None
+            row = row_for(epoch_day_to_date(local_date))
+            row["vo2_max"] = round(vo2_max, 2) if vo2_max is not None else None
 
     if table_exists(connection, "heart_rate_record_series_table"):
         for snapshot_date, avg_hr, min_hr, max_hr, count_hr in connection.execute(
             """
             select
-                date(epoch_millis / 1000, 'unixepoch', 'localtime') as snapshot_date,
+                date(epoch_millis / 1000, 'unixepoch', 'localtime'),
                 avg(beats_per_minute),
                 min(beats_per_minute),
                 max(beats_per_minute),
                 count(*)
             from heart_rate_record_series_table
-            group by snapshot_date
+            group by date(epoch_millis / 1000, 'unixepoch', 'localtime')
             """
         ):
             row = row_for(snapshot_date)
-            row.update({
-                "daily_hr_average": round(avg_hr, 2) if avg_hr is not None else None,
-                "daily_hr_minimum": min_hr,
-                "daily_hr_maximum": max_hr,
-                "daily_hr_sample_count": count_hr,
-            })
+            row["daily_hr_average"] = round(avg_hr, 2) if avg_hr is not None else None
+            row["daily_hr_minimum"] = min_hr
+            row["daily_hr_maximum"] = max_hr
+            row["daily_hr_sample_count"] = count_hr
 
-    if table_exists(connection, "sleep_session_record_table") and table_exists(connection, "heart_rate_record_series_table"):
+    if table_exists(connection, "sleep_session_record_table") and table_exists(
+        connection,
+        "heart_rate_record_series_table",
+    ):
         for local_date, avg_hr, min_hr, max_hr, count_hr in connection.execute(
             """
             select
@@ -155,14 +198,11 @@ def read_snapshot_metric_rows(connection):
             group by sleep.local_date
             """
         ):
-            snapshot_date = epoch_day_to_date(local_date)
-            row = row_for(snapshot_date)
-            row.update({
-                "sleep_average_heart_rate": round(avg_hr, 2) if avg_hr is not None else None,
-                "sleep_minimum_heart_rate": min_hr,
-                "sleep_maximum_heart_rate": max_hr,
-                "sleep_heart_rate_sample_count": count_hr,
-            })
+            row = row_for(epoch_day_to_date(local_date))
+            row["sleep_average_heart_rate"] = round(avg_hr, 2) if avg_hr is not None else None
+            row["sleep_minimum_heart_rate"] = min_hr
+            row["sleep_maximum_heart_rate"] = max_hr
+            row["sleep_heart_rate_sample_count"] = count_hr
 
     return list(rows_by_date.values())
 
@@ -173,7 +213,7 @@ def read_workout_rows(connection):
 
     rows = []
 
-    for session in connection.execute(
+    for row_id, local_date, start_time, end_time, exercise_type in connection.execute(
         """
         select
             row_id,
@@ -185,9 +225,7 @@ def read_workout_rows(connection):
         order by start_time
         """
     ):
-        row_id, local_date, start_time, end_time, exercise_type = session
-
-        hr = connection.execute(
+        average_hr, minimum_hr, maximum_hr = connection.execute(
             """
             select
                 avg(beats_per_minute),
@@ -199,31 +237,26 @@ def read_workout_rows(connection):
             (start_time, end_time),
         ).fetchone()
 
-        rows.append({
-            "workout_id": f"health_connect_{row_id}",
-            "workout_date": epoch_day_to_date(local_date),
-            "start_time": ms_to_iso(start_time),
-            "end_time": ms_to_iso(end_time),
-            "exercise_type_code": exercise_type,
-            "exercise_type_label": exercise_label(exercise_type),
-            "duration_minutes": minutes_between(start_time, end_time),
-            "calories": None,
-            "distance_meters": None,
-            "average_heart_rate": round(hr[0], 2) if hr and hr[0] is not None else None,
-            "minimum_heart_rate": hr[1] if hr else None,
-            "maximum_heart_rate": hr[2] if hr else None,
-            "source": "health_connect_cloud_sync",
-            "raw_json": None,
-        })
+        rows.append(
+            {
+                "workout_id": f"health_connect_{row_id}",
+                "workout_date": epoch_day_to_date(local_date),
+                "start_time": ms_to_iso(start_time),
+                "end_time": ms_to_iso(end_time),
+                "exercise_type_code": exercise_type,
+                "exercise_type_label": exercise_label(exercise_type),
+                "duration_minutes": minutes_between(start_time, end_time),
+                "calories": None,
+                "distance_meters": None,
+                "average_heart_rate": round(average_hr, 2) if average_hr is not None else None,
+                "minimum_heart_rate": minimum_hr,
+                "maximum_heart_rate": maximum_hr,
+                "source": "health_connect_cloud_sync",
+                "raw_json": None,
+            }
+        )
 
     return rows
-
-
-def table_exists(connection, table_name):
-    return connection.execute(
-        "select 1 from sqlite_master where type='table' and name=?",
-        (table_name,),
-    ).fetchone() is not None
 
 
 def main():

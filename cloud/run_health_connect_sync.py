@@ -8,10 +8,7 @@ HEALTH_CONNECT_DB_PATH = ROOT / "tmp" / "health_connect" / "health_connect_expor
 
 STEPS = [
     ["cloud/download_health_connect_zip.py"],
-    ["importers/import_health_connect_db_metrics.py"],
-    ["importers/import_health_connect_workouts.py"],
-    ["cloud/upload_all_snapshots.py"],
-    ["cloud/upload_workouts.py"],
+    ["cloud/sync_health_connect_to_supabase.py"],
 ]
 
 
