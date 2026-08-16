@@ -220,6 +220,32 @@
       }
     },
 	
+"/sleep-hr-history-message": {
+  "get": {
+    "operationId": "getSleepHrHistoryMessage",
+    "summary": "Get sleep heart rate history",
+    "description": "Returns latest available sleep heart rate history including average, minimum, maximum, and sample count.",
+    "responses": {
+      "200": {
+        "description": "Sleep heart rate history message",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},
+
+	
 	"/vo2-history-message": {
   "get": {
     "operationId": "getVo2HistoryMessage",
