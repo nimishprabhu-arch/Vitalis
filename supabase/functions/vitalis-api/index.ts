@@ -372,6 +372,116 @@ async function getWorkoutsByPeriodMessage(period: string) {
   ]);
 }
 
+async function getDailyHrHistoryMessage() {
+  const rows = await supabaseGet(
+    "health_snapshots?select=snapshot_date,daily_hr_average,daily_hr_minimum,daily_hr_maximum,daily_hr_sample_count&daily_hr_average=not.is.null&order=snapshot_date.desc&limit=90"
+  );
+
+  if (!rows || rows.length === 0) {
+    return messageResponse(["daily_hr_history", "No daily heart rate history found."]);
+  }
+
+  const orderedRows = [...rows].reverse();
+
+  return messageResponse([
+    "daily_hr_history",
+    "period: latest_available_up_to_90_rows",
+    `rows: ${orderedRows.length}`,
+    ...orderedRows.map(
+      (row: any) =>
+        `date: ${row.snapshot_date}; daily_avg_hr: ${round(row.daily_hr_average)}; min: ${round(row.daily_hr_minimum)}; max: ${round(row.daily_hr_maximum)}; samples: ${row.daily_hr_sample_count}`
+    ),
+  ]);
+}
+
+async function getWorkoutHistoryMessage() {
+  const rows = await supabaseGet(
+    "workouts?select=workout_date,exercise_type_label,duration_minutes,calories,distance_meters,average_heart_rate,minimum_heart_rate,maximum_heart_rate,source&order=workout_date.desc,start_time.desc&limit=120"
+  );
+
+  if (!rows || rows.length === 0) {
+    return messageResponse(["workout_history", "No workout history found."]);
+  }
+
+  const orderedRows = [...rows].reverse();
+
+  return messageResponse([
+    "workout_history",
+    "period: latest_available_up_to_120_rows",
+    `rows: ${orderedRows.length}`,
+    ...orderedRows.map(
+      (row: any) =>
+        `date: ${row.workout_date}; type: ${row.exercise_type_label ?? "Unavailable"}; duration_min: ${round(row.duration_minutes)}; calories: ${round(row.calories)}; distance_meters: ${round(row.distance_meters)}; avg_hr: ${round(row.average_heart_rate)}; min_hr: ${round(row.minimum_heart_rate)}; max_hr: ${round(row.maximum_heart_rate)}; source: ${row.source ?? "Unavailable"}`
+    ),
+  ]);
+}
+
+async function getCalorieHistoryMessage() {
+  const rows = await supabaseGet(
+    "health_snapshots?select=snapshot_date,active_calories,active_time_minutes,rest_calories,exercise_calories,total_burned_calories,source&or=(active_calories.not.is.null,total_burned_calories.not.is.null)&order=snapshot_date.desc&limit=90"
+  );
+
+  if (!rows || rows.length === 0) {
+    return messageResponse(["calorie_history", "No calorie history found."]);
+  }
+
+  const orderedRows = [...rows].reverse();
+
+  return messageResponse([
+    "calorie_history",
+    "period: latest_available_up_to_90_rows",
+    `rows: ${orderedRows.length}`,
+    ...orderedRows.map(
+      (row: any) =>
+        `date: ${row.snapshot_date}; active_calories: ${round(row.active_calories)}; active_time_minutes: ${round(row.active_time_minutes)}; rest_calories: ${round(row.rest_calories)}; exercise_calories: ${round(row.exercise_calories)}; total_burned_calories: ${round(row.total_burned_calories)}; source: ${row.source ?? "Unavailable"}`
+    ),
+  ]);
+}
+
+async function getLabMarkerHistoryMessage(marker: string | null) {
+  if (!marker || marker.trim() === "") {
+    return messageResponse([
+      "lab_marker_history",
+      "error: missing marker parameter",
+      "example: /lab-marker-history-message?marker=LDL",
+    ]);
+  }
+
+  const encodedMarker = encodeURIComponent(marker.trim());
+
+  const rows = await supabaseGet(
+    `medical_lab_results?select=test_date,category,canonical_marker,value,result_text,unit,reference_low,reference_high,flag,source_file,notes&canonical_marker=eq.${encodedMarker}&or=(value.not.is.null,result_text.not.is.null)&order=test_date.asc`
+  );
+
+  if (!rows || rows.length === 0) {
+    return messageResponse([
+      "lab_marker_history",
+      `marker: ${marker}`,
+      "No lab history found for this marker.",
+    ]);
+  }
+
+  return messageResponse([
+    "lab_marker_history",
+    `marker: ${marker}`,
+    `rows: ${rows.length}`,
+    ...rows.map((row: any) => {
+      const valueText =
+        row.value !== null && row.value !== undefined
+          ? `${round(row.value)}${row.unit ? ` ${row.unit}` : ""}`
+          : `${row.result_text ?? "Unavailable"}`;
+
+      const reference =
+        row.reference_low !== null || row.reference_high !== null
+          ? `${row.reference_low ?? ""}-${row.reference_high ?? ""}`
+          : "Unavailable";
+
+      return `date: ${row.test_date}; category: ${row.category}; value: ${valueText}; reference: ${reference}; flag: ${row.flag ?? "Unavailable"}; source_file: ${row.source_file ?? "Unavailable"}`;
+    }),
+  ]);
+}
+
+
 async function getSleepHrHistoryMessage(request: Request) {
   const url = new URL(request.url);
   const all = url.searchParams.get("all") === "true";
@@ -1196,6 +1306,18 @@ if (request.method === "POST" && path === "upload-calorie-snapshots") {
         `total_snapshots: ${result.total_snapshots}`,
       ]);
     }
+	
+	if (path === "daily-hr-history-message") return await getDailyHrHistoryMessage();
+
+	if (path === "workout-history-message") return await getWorkoutHistoryMessage();
+
+	if (path === "calorie-history-message") return await getCalorieHistoryMessage();
+
+	if (path === "lab-marker-history-message") {
+  const marker = new URL(request.url).searchParams.get("marker");
+  return await getLabMarkerHistoryMessage(marker);
+}
+
 
     if (path === "latest-summary") {
       return jsonResponse(await getLatestSummary());
@@ -1539,6 +1661,10 @@ if (path === "sleep-hr-history-message") {
 		"/sleep-hr-history-message",
 		"/latest-workouts-message",
 		"/workouts-by-period-message?period=YYYY-MM-DD",
+		"/daily-hr-history-message",
+		"/workout-history-message",
+		"/calorie-history-message",
+		"/lab-marker-history-message?marker=LDL",
       ],
     });
   } catch (error) {

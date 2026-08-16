@@ -65,6 +65,115 @@
         }
       }
     },
+	
+"/daily-hr-history-message": {
+  "get": {
+    "operationId": "getDailyHrHistoryMessage",
+    "summary": "Get daily heart rate history",
+    "description": "Returns latest available daily heart rate history including average, minimum, maximum, and sample count.",
+    "responses": {
+      "200": {
+        "description": "Daily heart rate history message",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},
+"/workout-history-message": {
+  "get": {
+    "operationId": "getWorkoutHistoryMessage",
+    "summary": "Get workout history",
+    "description": "Returns latest available workout history including date, exercise type, duration, calories, distance, heart rate, and source.",
+    "responses": {
+      "200": {
+        "description": "Workout history message",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},
+"/calorie-history-message": {
+  "get": {
+    "operationId": "getCalorieHistoryMessage",
+    "summary": "Get calorie history",
+    "description": "Returns latest available calorie history including active calories, rest calories, exercise calories, total burned calories, active time, and source.",
+    "responses": {
+      "200": {
+        "description": "Calorie history message",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},
+"/lab-marker-history-message": {
+  "get": {
+    "operationId": "getLabMarkerHistoryMessage",
+    "summary": "Get lab marker history",
+    "description": "Returns historical lab results for a specific canonical lab marker, such as LDL, Hemoglobin, HbA1c, Vitamin D, or TSH.",
+    "parameters": [
+      {
+        "name": "marker",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Canonical lab marker name, for example LDL, Hemoglobin, HbA1c, Vitamin D, or TSH."
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Lab marker history message",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},	
+	
     "/last-30-training-message": {
       "get": {
         "operationId": "getLast30TrainingMessage",
