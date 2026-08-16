@@ -264,6 +264,24 @@ async function getSnapshotByDate(snapshotDate: string) {
   };
 }
 
+async function getBodyMetricsHistoryMessage() {
+  const rows = await supabaseGet(
+    "body_metrics?select=metric_date,weight_kg,systolic_bp,diastolic_bp,notes,source&order=metric_date.asc"
+  );
+
+  if (!rows || rows.length === 0) {
+    return messageResponse(["body_metrics_history", "No body metrics found."]);
+  }
+
+  return messageResponse([
+    "body_metrics_history",
+    `rows: ${rows.length}`,
+    ...rows.map((row: any) =>
+      `date: ${row.metric_date}; weight_kg: ${round(row.weight_kg)}; bp: ${row.systolic_bp ?? "Unavailable"}/${row.diastolic_bp ?? "Unavailable"}; notes: ${row.notes ?? ""}; source: ${row.source ?? "Unavailable"}`
+    ),
+  ]);
+}
+
 async function getVo2HistoryMessage() {
   const rows = await supabaseGet(
     "health_snapshots?select=snapshot_date,vo2_max&vo2_max=not.is.null&order=snapshot_date.asc"
@@ -1343,7 +1361,8 @@ if (request.method === "POST" && path === "upload-calorie-snapshots") {
 
       return messageResponse(compareMessageLines(result.summaryA, result.summaryB));
     }
-	
+
+if (path === "body-metrics-history-message") return await getBodyMetricsHistoryMessage();
 	
 	if (path === "vo2-history-message") {
   return await getVo2HistoryMessage();
@@ -1657,6 +1676,7 @@ if (path === "sleep-hr-history-message") {
         "/upload-snapshot",
 		"/upload-calorie-snapshots",
 		"/upload-snapshot",
+		"/body-metrics-history-message",
 		"/vo2-history-message",
 		"/sleep-hr-history-message",
 		"/latest-workouts-message",
@@ -1665,6 +1685,7 @@ if (path === "sleep-hr-history-message") {
 		"/workout-history-message",
 		"/calorie-history-message",
 		"/lab-marker-history-message?marker=LDL",
+		
       ],
     });
   } catch (error) {

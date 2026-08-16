@@ -173,6 +173,31 @@
     }
   }
 },	
+
+"/body-metrics-history-message": {
+  "get": {
+    "operationId": "getBodyMetricsHistoryMessage",
+    "summary": "Get body metrics history",
+    "description": "Returns manually entered body metrics history including weight, blood pressure, notes, and source.",
+    "responses": {
+      "200": {
+        "description": "Body metrics history message",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},
 	
     "/last-30-training-message": {
       "get": {
