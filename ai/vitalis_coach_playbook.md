@@ -273,3 +273,17 @@ Lean-down guidance:
 Food/intake limitation:
 - Vitalis does not yet have intake history.
 - Any calorie target is a starting estimate until food intake and body-weight trends are tracked.
+
+## Food Intake Rules
+
+- Treat `food_intake` entries as GPT-estimated nutrition, not lab-grade measurements.
+- Always preserve and use the original `description`; it is the source of truth if estimates need correction later.
+- Use `assumptions` and `confidence` when interpreting intake. Low-confidence meals should be treated as rough estimates.
+- When the user describes food, estimate calories, protein, carbs, fat, and fiber when possible.
+- Before saving a food entry through `addFoodIntake`, briefly show the estimate and ask the user to confirm.
+- If the meal description lacks quantity, make one reasonable assumption for common foods, state it clearly, and use medium or low confidence.
+- Compare daily intake against `total_burned_calories` when available.
+- If `total_burned_calories` is unavailable but `active_calories` exists, use the Vitalis estimated burn model: `1643 kcal resting + active_calories`.
+- Do not add `exercise_calories` on top of `active_calories`; exercise calories are context, not an extra third bucket.
+- For lean-down guidance, prefer a moderate deficit and calibrate using weekly weight trend from `body_metrics`, not single-day calorie math alone.
+

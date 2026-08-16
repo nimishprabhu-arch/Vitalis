@@ -174,6 +174,54 @@
   }
 },	
 
+"/add-food-intake": {
+  "post": {
+    "operationId": "addFoodIntake",
+    "summary": "Add food intake",
+    "description": "Saves a food intake entry after GPT estimates calories, macros, assumptions, and confidence from the user's food description.",
+    "requestBody": {
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": ["description"],
+            "properties": {
+              "intake_date": { "type": "string", "description": "Date in YYYY-MM-DD format." },
+              "meal_type": { "type": "string", "description": "Meal type such as breakfast, lunch, dinner, snack." },
+              "description": { "type": "string", "description": "Original user food description." },
+              "estimated_calories": { "type": "number" },
+              "protein_g": { "type": "number" },
+              "carbs_g": { "type": "number" },
+              "fat_g": { "type": "number" },
+              "fiber_g": { "type": "number" },
+              "assumptions": { "type": "string" },
+              "confidence": { "type": "string", "description": "Estimate confidence: low, medium, or high." },
+              "source": { "type": "string", "description": "Usually gpt_estimate." }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "200": {
+        "description": "Food intake saved",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": { "type": "string" },
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},
+
 "/food-intake-history-message": {
   "get": {
     "operationId": "getFoodIntakeHistoryMessage",

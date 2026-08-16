@@ -54,6 +54,27 @@ async function supabaseUpsertSnapshot(snapshot: Record<string, unknown>) {
   return body ? JSON.parse(body) : [];
 }
 
+async function supabaseInsertFoodIntake(row: Record<string, unknown>) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/food_intake`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify([row]),
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Supabase ${response.status}: ${responseText}`);
+  }
+
+  return JSON.parse(responseText);
+}
+
 function round(value: unknown, digits = 2) {
   if (value === null || value === undefined || value === "") return null;
   const numberValue = Number(value);
@@ -115,6 +136,23 @@ function sum(rows: any[], field: string) {
 
 function pick(payload: Record<string, unknown>, snakeName: string, camelName: string) {
   return payload[snakeName] ?? payload[camelName] ?? null;
+}
+
+function normalizeFoodIntake(payload: Record<string, unknown>) {
+  return {
+    intake_date: textOrNull(pick(payload, "intake_date", "intakeDate")) ?? new Date().toISOString().slice(0, 10),
+    meal_type: textOrNull(pick(payload, "meal_type", "mealType")),
+    description: textOrNull(pick(payload, "description", "description")),
+    estimated_calories: realOrNull(pick(payload, "estimated_calories", "estimatedCalories")),
+    protein_g: realOrNull(pick(payload, "protein_g", "proteinG")),
+    carbs_g: realOrNull(pick(payload, "carbs_g", "carbsG")),
+    fat_g: realOrNull(pick(payload, "fat_g", "fatG")),
+    fiber_g: realOrNull(pick(payload, "fiber_g", "fiberG")),
+    assumptions: textOrNull(pick(payload, "assumptions", "assumptions")),
+    confidence: textOrNull(pick(payload, "confidence", "confidence")),
+    source: textOrNull(pick(payload, "source", "source")) ?? "gpt_estimate",
+    updated_at: new Date().toISOString(),
+  };
 }
 
 function normalizeSnapshot(payload: Record<string, unknown>) {
@@ -1266,6 +1304,29 @@ Deno.serve(async (request) => {
 
   try {
     const path = new URL(request.url).pathname.split("/").filter(Boolean).pop();
+	
+	if (request.method === "POST" && path === "add-food-intake") {
+  const payload = await request.json();
+  const row = normalizeFoodIntake(payload);
+
+  if (!row.description) {
+    return jsonResponse(
+      {
+        status: "error",
+        message: "description is required",
+      },
+      400
+    );
+  }
+
+  const rows = await supabaseInsertFoodIntake(row);
+
+  return jsonResponse({
+    status: "ok",
+    message: "Food intake saved.",
+    rows,
+  });
+}
 
     if (request.method === "POST" && path === "upload-snapshot") {
       const payload = await request.json();
@@ -1696,6 +1757,7 @@ if (path === "sleep-hr-history-message") {
         "/last-30-training-text",
         "/upload-snapshot",
 		"/upload-calorie-snapshots",
+		"/add-food-intake",
 		"/upload-snapshot",
 		"/body-metrics-history-message",
 		"/food-intake-history-message",
