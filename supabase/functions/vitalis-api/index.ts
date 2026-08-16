@@ -264,6 +264,25 @@ async function getSnapshotByDate(snapshotDate: string) {
   };
 }
 
+async function getFoodIntakeHistoryMessage() {
+  const rows = await supabaseGet(
+    "food_intake?select=id,intake_date,meal_type,description,estimated_calories,protein_g,carbs_g,fat_g,fiber_g,assumptions,confidence,source&order=intake_date.asc,id.asc"
+  );
+
+  if (!rows || rows.length === 0) {
+    return messageResponse(["food_intake_history", "No food intake found."]);
+  }
+
+  return messageResponse([
+    "food_intake_history",
+    `rows: ${rows.length}`,
+    ...rows.map((row: any) =>
+      `date: ${row.intake_date}; meal: ${row.meal_type ?? "Unavailable"}; description: ${row.description}; calories: ${round(row.estimated_calories)}; protein_g: ${round(row.protein_g)}; carbs_g: ${round(row.carbs_g)}; fat_g: ${round(row.fat_g)}; fiber_g: ${round(row.fiber_g)}; confidence: ${row.confidence ?? "Unavailable"}; assumptions: ${row.assumptions ?? ""}; source: ${row.source ?? "Unavailable"}`
+    ),
+  ]);
+}
+
+
 async function getBodyMetricsHistoryMessage() {
   const rows = await supabaseGet(
     "body_metrics?select=metric_date,weight_kg,systolic_bp,diastolic_bp,notes,source&order=metric_date.asc"
@@ -1368,6 +1387,8 @@ if (path === "body-metrics-history-message") return await getBodyMetricsHistoryM
   return await getVo2HistoryMessage();
 }
 
+if (path === "food-intake-history-message") return await getFoodIntakeHistoryMessage();
+
 if (path === "sync-health-status-message") return await getSyncHealthStatusMessage();
 
 if (path === "latest-workouts-message") {
@@ -1677,6 +1698,7 @@ if (path === "sleep-hr-history-message") {
 		"/upload-calorie-snapshots",
 		"/upload-snapshot",
 		"/body-metrics-history-message",
+		"/food-intake-history-message",
 		"/vo2-history-message",
 		"/sleep-hr-history-message",
 		"/latest-workouts-message",
