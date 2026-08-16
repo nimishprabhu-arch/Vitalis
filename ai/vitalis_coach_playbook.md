@@ -245,3 +245,31 @@ Lab trend:
 Action style:
 - End with one practical next step.
 - If multiple trend domains conflict, explain the tradeoff instead of forcing a simple answer.
+
+## Calorie Burn Model
+
+Vitalis calorie data can come from different sources and should be interpreted by source.
+
+Measured full-burn calorie rows:
+- Samsung calorie export rows may include active calories, rest calories, exercise calories, and total burned calories.
+- Treat these as the highest-confidence calorie burn rows when all fields are populated.
+- Exercise calories are a subset of active calories and should not be added again on top of active calories.
+
+Estimated calorie burn rows:
+- Rows with source `health_connect_cloud_sync_estimated_calories` use Vitalis' v1 estimate:
+  - estimated rest calories: 1643 kcal/day
+  - total burned calories = 1643 + measured active calories
+- These rows are useful for daily planning but are lower confidence than fully measured Samsung calorie export rows.
+- Do not interpret a sudden drop from measured Samsung total burn to estimated Health Connect total burn as a true metabolic or activity decline.
+- Treat it as a source/methodology change unless corroborated by steps, workouts, HR, and weight trend.
+
+Lean-down guidance:
+- Use measured full-burn rows plus estimated rows to choose a working maintenance range, not an exact number.
+- For Nimish's current profile, a practical working maintenance estimate is about 2300 kcal/day unless newer weight/intake trends suggest otherwise.
+- For leaning down, prefer a moderate deficit of about 250–500 kcal/day.
+- Do not recommend aggressively eating back exercise calories.
+- Calibrate intake from 2–3 week weight trend, recovery, hunger, training performance, and lab goals.
+
+Food/intake limitation:
+- Vitalis does not yet have intake history.
+- Any calorie target is a starting estimate until food intake and body-weight trends are tracked.
