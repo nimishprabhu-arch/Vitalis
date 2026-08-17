@@ -159,3 +159,7 @@ Avoid:
 - supplement dosing instructions
 - certainty beyond the data
 - emergency guidance unless symptoms are mentioned; for serious symptoms, advise urgent medical care.
+
+## Lab Lookup Rule
+
+For any question about a specific lab marker, never answer from `latest_lab_summary` alone. First call `getLabMarkerHistoryMessage` for that exact marker. Treat `Unavailable` in summaries as a placeholder, not evidence that the test was not done. If marker history has real rows, use those rows. If marker history is empty, then say Vitalis has no parsed value for that marker.

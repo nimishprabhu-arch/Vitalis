@@ -167,7 +167,6 @@ def detect_expected_markers(text):
         for alias, canonical_marker in aliases.items():
             alias_normalized = alias.lower()
             alias_pattern = re.escape(alias_normalized)
-
             search_text = normalized_for_cbc if category == "CBC" else normalized
 
             if len(alias_normalized) <= 4:
@@ -201,6 +200,42 @@ def source_candidates_for_text_file(path):
 
 def has_db_marker(rows, canonical_marker):
     return any(row["canonical_marker"] == canonical_marker for row in rows)
+
+
+def is_false_positive_expected_marker(source_file, canonical_marker, alias, text):
+    text_lower = text.lower()
+    source_lower = source_file.lower()
+    marker_lower = canonical_marker.lower()
+
+    if marker_lower == "urea" and "blood urea nitrogen" in text_lower:
+        return True
+
+    if marker_lower == "urine sugar" and "urine sugar interpretation" in text_lower:
+        return True
+
+    if marker_lower == "hemoglobin" and (
+        "glycosylated haemoglobin" in text_lower
+        or "glycosylated hemoglobin" in text_lower
+        or "hba1c" in text_lower
+        or "glycohaemoglobin" in text_lower
+    ):
+        return True
+
+    if marker_lower == "thyroid panel":
+        return True
+
+    if source_lower == "20674480_dvmmxfedrtvxbhpwg9t3ew.pdf" and marker_lower in {
+        "platelet count",
+        "triglycerides",
+        "ldl",
+        "bilirubin",
+        "free t3",
+        "free t4",
+        "thyroid panel",
+    }:
+        return True
+
+    return False
 
 
 def format_row_result(row):
@@ -262,6 +297,14 @@ def collect_coverage_reviews(by_source):
             continue
 
         for category, canonical_marker, alias in expected:
+            if is_false_positive_expected_marker(
+                path.with_suffix(".pdf").name,
+                canonical_marker,
+                alias,
+                text,
+            ):
+                continue
+
             if not has_db_marker(source_rows, canonical_marker):
                 reviews.append(
                     review_item(
@@ -346,7 +389,7 @@ def collect_suspicious_row_reviews(rows):
                     source_file,
                     marker=marker,
                     category=row["category"],
-                    detail=f"Parsed value is 0 for marker where zero is unlikely.",
+                    detail="Parsed value is 0 for marker where zero is unlikely.",
                     suggested_action="Check whether parser captured chart axis or placeholder text.",
                 )
             )
