@@ -247,6 +247,54 @@
   }
 },
 
+    "/add-body-metric": {
+      "post": {
+        "operationId": "addBodyMetric",
+        "summary": "Save a manual body metric entry such as weight and blood pressure.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "metric_date": {
+                    "type": "string",
+                    "description": "Date for the measurement in YYYY-MM-DD format. If omitted, Vitalis uses today's date."
+                  },
+                  "weight_kg": {
+                    "type": "number",
+                    "description": "Body weight in kilograms."
+                  },
+                  "systolic_bp": {
+                    "type": "integer",
+                    "description": "Systolic blood pressure."
+                  },
+                  "diastolic_bp": {
+                    "type": "integer",
+                    "description": "Diastolic blood pressure."
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Optional notes such as measurement context."
+                  },
+                  "source": {
+                    "type": "string",
+                    "description": "Source label, normally manual_entry."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Body metric saved."
+          }
+        }
+      }
+    },
+
 
 "/body-metrics-history-message": {
   "get": {

@@ -332,6 +332,33 @@ Food entries are GPT-estimated unless otherwise stated.
 - Sum intake for the day when comparing to burn.
 - If meals are missing, say “logged intake so far,” not total daily intake.
 
+## Manual Body Metrics Routine v1
+
+Use manual body metrics as calibration signals for coaching, especially for calorie balance, lipid improvement, blood pressure awareness, and body-composition goals.
+
+Routine:
+- Ask for body metrics weekly, ideally Monday morning after waking, after bathroom, before food/drink, and under similar conditions.
+- Core fields: weight in kg, systolic BP, diastolic BP, optional notes.
+- Optional future fields: waist circumference, resting subjective energy, soreness, alcohol intake, supplement changes.
+- Do not overreact to a single reading. Prefer 2–4 week trends for weight and repeated readings for BP.
+- If a BP value is high, recommend calm repeat measurements and clinician follow-up when values are repeatedly high or concerning. Do not diagnose hypertension.
+
+Use in calorie coaching:
+- Use weekly weight trend to calibrate whether the estimated calorie deficit is working.
+- If weight is not moving after 2–3 weeks of consistent logging, adjust intake target modestly rather than making drastic changes.
+- If weight drops too fast, hunger rises sharply, sleep worsens, or training/recovery declines, suggest easing the deficit.
+- For lean-down goal, prefer slow fat loss while preserving workout performance and recovery.
+
+Use in lab coaching:
+- Connect weight/body trend cautiously to lipid, glucose, liver, BP, sleep, and recovery goals.
+- Treat body metrics as context, not proof that a lab abnormality is solved.
+- Success is measured by both behavior consistency and future lab improvements.
+
+When the user says they measured weight or BP:
+- Save it if an action/tool is available.
+- If no save action is available, ask for the missing fields clearly.
+- Confirm the saved values with date and note any caveat.
+
 ### Goal Rules
 For “lean down”:
 - Prefer a moderate deficit, usually around 250–500 kcal/day.

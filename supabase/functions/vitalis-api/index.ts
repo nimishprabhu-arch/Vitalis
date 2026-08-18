@@ -75,6 +75,27 @@ async function supabaseInsertFoodIntake(row: Record<string, unknown>) {
   return JSON.parse(responseText);
 }
 
+async function supabaseInsertBodyMetric(row: Record<string, unknown>) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/body_metrics?on_conflict=metric_date`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates,return=representation",
+    },
+    body: JSON.stringify([row]),
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Supabase ${response.status}: ${responseText}`);
+  }
+
+  return JSON.parse(responseText);
+}
+
 function round(value: unknown, digits = 2) {
   if (value === null || value === undefined || value === "") return null;
   const numberValue = Number(value);
@@ -136,6 +157,18 @@ function sum(rows: any[], field: string) {
 
 function pick(payload: Record<string, unknown>, snakeName: string, camelName: string) {
   return payload[snakeName] ?? payload[camelName] ?? null;
+}
+
+function normalizeBodyMetric(payload: Record<string, unknown>) {
+  return {
+    metric_date: textOrNull(pick(payload, "metric_date", "metricDate")) ?? new Date().toISOString().slice(0, 10),
+    weight_kg: realOrNull(pick(payload, "weight_kg", "weightKg")),
+    systolic_bp: integerOrNull(pick(payload, "systolic_bp", "systolicBp")),
+    diastolic_bp: integerOrNull(pick(payload, "diastolic_bp", "diastolicBp")),
+    notes: textOrNull(pick(payload, "notes", "notes")) ?? "",
+    source: textOrNull(pick(payload, "source", "source")) ?? "manual_entry",
+    updated_at: new Date().toISOString(),
+  };
 }
 
 function normalizeFoodIntake(payload: Record<string, unknown>) {
@@ -1297,6 +1330,18 @@ Deno.serve(async (request) => {
 
   try {
     const path = new URL(request.url).pathname.split("/").filter(Boolean).pop();
+	
+	    if (request.method === "POST" && path === "add-body-metric") {
+      const payload = await request.json();
+      const row = normalizeBodyMetric(payload);
+      const rows = await supabaseInsertBodyMetric(row);
+
+      return jsonResponse({
+        status: "ok",
+        message: "Body metric saved.",
+        rows,
+      });
+    }
 	
 	if (request.method === "POST" && path === "add-food-intake") {
   const payload = await request.json();
