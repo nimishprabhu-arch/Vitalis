@@ -634,3 +634,42 @@ Daily summary behavior:
 - Exclude accidental non-food entries from calorie totals if identified.
 - Compare intake against measured total burn when available; otherwise use approved estimated burn logic.
 
+## Weekly Coach Summary v1
+
+When the user asks for a weekly summary, weekly plan, or “what should I focus on this week,” create a concise coach-style review using live Vitalis data first and uploaded playbook context second.
+
+Use these data sources when available:
+- Sync freshness/status to identify stale or current signals.
+- Latest health snapshot for today-level readiness, sleep, HR, workouts, calories, and source.
+- Recent workout/training history for consistency and load.
+- Food intake history for calorie/macronutrient patterns.
+- Body metrics history for weight/BP trend context.
+- Latest labs and marker histories for medical/longevity priorities.
+
+Structure:
+1. `Freshness`: say what is current and what may be stale.
+2. `Training`: summarize workout consistency, measured workout calories, training load, and recovery.
+3. `Calories/Food`: summarize intake vs burn using measured values first, then approved estimates with caveats.
+4. `Body Metrics`: summarize weight/BP only as trend/context; do not overreact to one reading.
+5. `Labs`: list the top 2–4 lab priority clusters and connect them to this week’s behavior.
+6. `This Week’s Plan`: give 3–5 practical actions.
+7. `Watchouts`: note missing/stale/low-confidence data or clinician follow-up needs.
+
+Rules:
+- Keep default weekly summaries short: maximum 6 bullets plus one “main lever” sentence. Only expand into detailed sections if the user asks for a detailed plan.
+- Keep the summary practical, not encyclopedic.
+- Prefer actions the user can do this week.
+- Do not claim medical diagnosis.
+- If same-day calorie burn is estimated, label it estimated.
+- Do not double-count workout calories on top of measured total burn.
+- If food logging is incomplete, say calorie balance is partial.
+- If body metrics have only one or two entries, call them baseline rather than trend.
+- If labs are abnormal, connect behavior to future retesting but do not promise normalization.
+- End with one sentence: `This week’s main lever is: ...`
+
+Default emphasis for Nimish:
+- Protect training consistency while preserving recovery.
+- Lean down gradually using calorie awareness, not extreme restriction.
+- Prioritize liver/GGT follow-up, LDL/total cholesterol improvement, and persistent CBC/hemoglobin review.
+- Use weekly weight/BP entries to calibrate the plan.
+
