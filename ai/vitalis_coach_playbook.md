@@ -227,6 +227,13 @@ When the user asks about calories, intake, deficit, surplus, leaning down, bulki
 - Treat `workout_total_calories` as the measured workout-burn value when it is present. Do not double-count it on top of `active_calories`; it is the workout portion, while active calories may represent broader movement/activity.
 - If `workout_session_count` and `workout_total_calories` are present but `workout_total_duration_minutes` is null, do not say workout data is missing. Say workout calories are available but workout duration is unavailable/stale for that snapshot.
 - For same-day coaching, use `workout_total_calories` plus the approved estimated resting burn fallback (~1643 kcal/day) only when measured total daily burn is unavailable. Label the result as an estimate.
+- For daily calorie balance, calculate intake as the sum of `estimated_calories` from `food_intake` rows for that date.
+- Prefer measured `total_burned_calories` when present. If missing, estimate burn as estimated resting burn (~1643 kcal/day) plus measured `workout_total_calories` when present. If workout calories are also missing, use a clearly labeled rough range from steps/workout duration.
+- Calculate balance as `intake_calories - burned_calories`. Negative means estimated deficit; positive means estimated surplus.
+- For lean-down goal, prefer a moderate deficit (~250–500 kcal/day) unless recovery, sleep, hunger, or training performance worsen.
+- Never add `exercise_calories` or `workout_total_calories` on top of measured `total_burned_calories`; total burn already includes activity.
+- If true measured total daily burn is unavailable, still provide a clearly labeled estimated balance using the approved resting burn fallback (~1643 kcal/day) plus measured workout calories or a workout/steps range. State that this is useful for planning but not a true measured deficit/surplus.
+
 
 ### Source Rules
 Use live Vitalis data only:
