@@ -28,6 +28,7 @@ Guidance:
 - Say “latest available” when using older synced values.
 - If freshness is mixed, give useful coaching from current fields but clearly state what is lagging.
 - If a metric has not updated for several days, avoid strong day-specific conclusions from it.
+- If `latest_snapshot_workout_date` is newer than `latest_workout_table_date`, use the latest health snapshot for today-level workout coaching. The detailed workout table may lag because it comes from historical Health Connect export rows. Do not say workouts are unavailable if snapshot workout fields are fresh.
 
 ## Lab Intelligence Rules
 
@@ -219,6 +220,67 @@ Guidance:
 - Pair SpO2 with sleep quality, sleep HR, respiratory symptoms, snoring, alcohol, illness, altitude, and device fit.
 - Do not diagnose sleep apnea or oxygen disorders from Vitalis data.
 - If low values persist or symptoms are present, suggest clinician review or a proper sleep study.
+
+## Calorie Intake vs Burn Coach
+
+When the user asks about calories, intake, deficit, surplus, leaning down, bulking, or what to eat next, combine food intake history with Vitalis burn data and the user’s goal.
+- Treat `workout_total_calories` as the measured workout-burn value when it is present. Do not double-count it on top of `active_calories`; it is the workout portion, while active calories may represent broader movement/activity.
+- If `workout_session_count` and `workout_total_calories` are present but `workout_total_duration_minutes` is null, do not say workout data is missing. Say workout calories are available but workout duration is unavailable/stale for that snapshot.
+- For same-day coaching, use `workout_total_calories` plus the approved estimated resting burn fallback (~1643 kcal/day) only when measured total daily burn is unavailable. Label the result as an estimate.
+
+### Source Rules
+Use live Vitalis data only:
+- Food intake comes from `food_intake`.
+- Burn comes from health snapshot calorie fields.
+- Body weight comes from body metrics when available.
+- If today’s burn is incomplete or stale, say so clearly.
+
+### Burn Rules
+Interpret calorie fields carefully:
+- `active_calories` = movement/activity calories.
+- `rest_calories` = resting baseline calories when measured or estimated.
+- `exercise_calories` = workout subset/context, not an extra third bucket to add on top of active + rest.
+- `total_burned_calories` = preferred daily burn if present.
+- If total burned is missing but rest + active exist, use `rest_calories + active_calories`.
+- If calories are estimated, say confidence is moderate/low and do not over-precision coach.
+- If all measured calorie fields are missing but workout duration/steps are available, Vitalis may provide a rough estimated burn range instead of an exact deficit. Label it clearly as estimated. Use the user’s estimated resting burn of about 1643 kcal/day plus broad activity/workout estimates from steps and workout duration. Do not present this as measured total burn.
+- If measured `rest_calories` is missing, Vitalis may use the user’s estimated resting burn of about 1643 kcal/day as `estimated_rest_calories`. This is not a live measurement, but it is an approved fallback for calorie coaching.
+
+### Intake Rules
+Food entries are GPT-estimated unless otherwise stated.
+- Treat meal calories/macros as estimates.
+- Use confidence labels.
+- Do not pretend food estimates are exact.
+- Sum intake for the day when comparing to burn.
+- If meals are missing, say “logged intake so far,” not total daily intake.
+
+### Goal Rules
+For “lean down”:
+- Prefer a moderate deficit, usually around 250–500 kcal/day.
+- Protect protein, training performance, sleep, and recovery.
+- Do not recommend aggressive cuts if readiness/recovery/sleep are poor.
+- If intake is too low relative to training load, recommend a steadier plan.
+
+For “bulk”:
+- Prefer a controlled surplus, usually around 150–300 kcal/day.
+- Keep protein high and monitor fat gain via weight trend.
+
+For maintenance:
+- Aim near estimated maintenance and judge by 2–3 week weight trend.
+
+### Output Style
+For daily calorie coaching, return:
+1. Logged intake so far.
+2. Estimated burn / burn confidence.
+3. Current deficit or surplus.
+4. Protein/macros if available.
+5. What to eat next.
+6. What not to over-interpret.
+7. One practical next action.
+
+### Safety and Precision
+Do not overstate exact calorie math. Wearable burn and GPT food estimates both have uncertainty. Use ranges where helpful. For weight-loss pace, prefer weekly body-weight trend over one-day calorie math.
+
 
 ## Regression Test Prompts
 

@@ -162,25 +162,6 @@ function normalizeSnapshot(payload: Record<string, unknown>) {
   if (!snapshotDate) {
     throw new Error("Missing required field: snapshot_date");
   }
-  
-  
-  function normalizeCalorieSnapshot(payload: Record<string, unknown>) {
-  const snapshotDate = pick(payload, "snapshot_date", "date");
-
-  if (!snapshotDate) {
-    throw new Error("Missing required field: snapshot_date");
-  }
-
-  return {
-    snapshot_date: textOrNull(snapshotDate),
-    active_calories: realOrNull(pick(payload, "active_calories", "activeCalories")),
-    active_time_minutes: realOrNull(pick(payload, "active_time_minutes", "activeTimeMinutes")),
-    rest_calories: realOrNull(pick(payload, "rest_calories", "restCalories")),
-    exercise_calories: realOrNull(pick(payload, "exercise_calories", "exerciseCalories")),
-    total_burned_calories: realOrNull(pick(payload, "total_burned_calories", "totalBurnedCalories")),
-    source: textOrNull(pick(payload, "source", "source")) ?? "samsung_calorie_export",
-  };
-}
 
   return {
     snapshot_date: textOrNull(snapshotDate),
@@ -200,9 +181,7 @@ function normalizeSnapshot(payload: Record<string, unknown>) {
     awake_minutes: integerOrNull(pick(payload, "awake_minutes", "awakeMinutes")),
     sleep_session_count: integerOrNull(pick(payload, "sleep_session_count", "sleepSessionCount")),
     workout_session_count: integerOrNull(pick(payload, "workout_session_count", "workoutSessionCount")),
-    workout_total_duration_minutes: integerOrNull(
-      pick(payload, "workout_total_duration_minutes", "workoutTotalDurationMinutes")
-    ),
+    workout_total_duration_minutes: integerOrNull(pick(payload, "workout_total_duration_minutes", "workoutTotalDurationMinutes")),
     workout_total_calories: realOrNull(pick(payload, "workout_total_calories", "workoutTotalCalories")),
     workout_distance_meters: realOrNull(pick(payload, "workout_distance_meters", "workoutDistanceMeters")),
     workout_average_heart_rate: realOrNull(pick(payload, "workout_average_heart_rate", "workoutAverageHeartRate")),
@@ -221,11 +200,11 @@ function normalizeSnapshot(payload: Record<string, unknown>) {
     energy_sleep_score: realOrNull(pick(payload, "energy_sleep_score", "energySleepScore")),
     energy_activity_score: realOrNull(pick(payload, "energy_activity_score", "energyActivityScore")),
     heart_health_score: realOrNull(pick(payload, "heart_health_score", "heartHealthScore")),
-	vitalis_readiness_score: integerOrNull(pick(payload, "vitalis_readiness_score", "vitalisReadinessScore")),
-vitalis_sleep_quality_score: integerOrNull(pick(payload, "vitalis_sleep_quality_score", "vitalisSleepQualityScore")),
-vitalis_recovery_score: integerOrNull(pick(payload, "vitalis_recovery_score", "vitalisRecoveryScore")),
-vitalis_training_load_score: integerOrNull(pick(payload, "vitalis_training_load_score", "vitalisTrainingLoadScore")),
-vitalis_coach_note: textOrNull(pick(payload, "vitalis_coach_note", "vitalisCoachNote")),
+    vitalis_readiness_score: integerOrNull(pick(payload, "vitalis_readiness_score", "vitalisReadinessScore")),
+    vitalis_sleep_quality_score: integerOrNull(pick(payload, "vitalis_sleep_quality_score", "vitalisSleepQualityScore")),
+    vitalis_recovery_score: integerOrNull(pick(payload, "vitalis_recovery_score", "vitalisRecoveryScore")),
+    vitalis_training_load_score: integerOrNull(pick(payload, "vitalis_training_load_score", "vitalisTrainingLoadScore")),
+    vitalis_coach_note: textOrNull(pick(payload, "vitalis_coach_note", "vitalisCoachNote")),
     source: textOrNull(pick(payload, "source", "source")) ?? "vitalis_android",
   };
 }
@@ -361,7 +340,7 @@ async function getVo2HistoryMessage() {
 
 async function getSyncHealthStatusMessage() {
   const rows = await supabaseGet(
-    "health_snapshots?select=snapshot_date,daily_hr_average,sleep_average_heart_rate,spo2_average,vo2_max,source&order=snapshot_date.desc&limit=60"
+    "health_snapshots?select=snapshot_date,daily_hr_average,sleep_average_heart_rate,spo2_average,vo2_max,workout_session_count,workout_total_duration_minutes,workout_total_calories,source&order=snapshot_date.desc&limit=60"
   );
 
   const workouts = await supabaseGet(
@@ -373,6 +352,18 @@ async function getSyncHealthStatusMessage() {
     return row?.snapshot_date ?? "Unavailable";
   }
 
+  const latestSnapshotWorkoutRow = rows.find((item: any) => {
+    const sessionCount = Number(item.workout_session_count ?? 0);
+    const duration = Number(item.workout_total_duration_minutes ?? 0);
+    const calories = item.workout_total_calories;
+
+    return (
+      sessionCount > 0 ||
+      duration > 0 ||
+      (calories !== null && calories !== undefined && Number(calories) > 0)
+    );
+  });
+
   return messageResponse([
     "sync_health_status",
     `latest_snapshot_date: ${rows[0]?.snapshot_date ?? "Unavailable"}`,
@@ -380,9 +371,10 @@ async function getSyncHealthStatusMessage() {
     `latest_sleep_hr_date: ${latestDateFor("sleep_average_heart_rate")}`,
     `latest_spo2_date: ${latestDateFor("spo2_average")}`,
     `latest_vo2_date: ${latestDateFor("vo2_max")}`,
-    `latest_workout_date: ${workouts[0]?.workout_date ?? "Unavailable"}`,
+    `latest_snapshot_workout_date: ${latestSnapshotWorkoutRow?.snapshot_date ?? "Unavailable"}`,
+    `latest_workout_table_date: ${workouts[0]?.workout_date ?? "Unavailable"}`,
     `latest_source: ${rows[0]?.source ?? "Unavailable"}`,
-    "note: This checks latest available synced dates by metric. It does not prove the phone export itself is fresh.",
+    "note: Snapshot workout date comes from health_snapshots and is best for today-level workout freshness. Workout table date comes from detailed historical workout rows and may lag.",
   ]);
 }
 
@@ -633,7 +625,8 @@ function snapshotMessageLines(snapshot: any) {
     `energy_sleep_score: ${round(snapshot.energy_sleep_score)}`,
     `energy_activity_score: ${round(snapshot.energy_activity_score)}`,
     `workout_session_count: ${snapshot.workout_session_count}`,
-    `workout_total_duration_minutes: ${snapshot.workout_total_duration_minutes}`,
+    `workout_total_calories: ${round(snapshot.workout_total_calories)}`,
+	`workout_total_duration_minutes: ${round(snapshot.workout_total_duration_minutes)}`,
     `vitalis_readiness_score: ${snapshot.vitalis_readiness_score}`,
     `vitalis_sleep_quality_score: ${snapshot.vitalis_sleep_quality_score}`,
     `vitalis_recovery_score: ${snapshot.vitalis_recovery_score}`,
