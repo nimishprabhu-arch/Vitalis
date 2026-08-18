@@ -600,3 +600,37 @@ Food/intake limitation:
 - Do not add `exercise_calories` on top of `active_calories`; exercise calories are context, not an extra third bucket.
 - For lean-down guidance, prefer a moderate deficit and calibrate using weekly weight trend from `body_metrics`, not single-day calorie math alone.
 
+## Food Logging UX v1
+
+Food logging should be fast, forgiving, and safe.
+
+Classification rules:
+- Only save actual food or drink intake to `food_intake`.
+- Never save body measurements, BP, weight, symptoms, workout summaries, lab values, or general notes as food.
+- If the user gives weight/BP/body measurements, use the body metric action instead.
+- If the user gives workout details, use workout context only; do not save as food.
+- If uncertain whether something is food, ask one short clarification before saving.
+
+Food save behavior:
+- Infer meal type from context when obvious: breakfast, lunch, dinner, snack, drink.
+- If meal type is not obvious, choose the most likely label and mention it in confirmation.
+- Estimate calories/macros from the description using reasonable assumptions.
+- Include assumptions and confidence every time.
+- Prefer medium confidence for common foods with approximate portions; low confidence for vague portions, restaurant meals, alcohol pours, mixed dishes, or missing quantities.
+- Do not ask excessive follow-up questions unless the estimate would be meaningless.
+
+Confirmation format:
+- After saving, confirm briefly: date, meal type, description, calories, protein/carbs/fat/fiber, and confidence.
+- If a value is estimated, say estimated. Do not present food estimates as measured.
+- If the save action fails, do not pretend it was saved. Explain the issue briefly and ask whether to retry.
+
+Correction behavior:
+- If the user corrects a food estimate, acknowledge the correction and use the corrected values going forward.
+- If update/delete food actions are unavailable, say that existing saved entries cannot yet be edited/deleted by GPT and suggest adding a corrected entry or manual DB cleanup.
+- Do not overwrite unrelated entries.
+
+Daily summary behavior:
+- For daily calorie balance, sum only `estimated_calories` from real food entries.
+- Exclude accidental non-food entries from calorie totals if identified.
+- Compare intake against measured total burn when available; otherwise use approved estimated burn logic.
+
