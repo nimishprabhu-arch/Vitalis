@@ -3,242 +3,530 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Vitalis Mission Control</title>
+  <title>Vitalis Dashboard</title>
   <style>
     :root {
-      --bg: #f7f2f7;
+      --bg: #f6f7fb;
       --card: #ffffff;
-      --ink: #211827;
-      --muted: #746979;
-      --line: #eadfea;
-      --green: #20b486;
-      --amber: #f3a53f;
-      --red: #e85d75;
-      --purple: #7357d8;
-      --blue: #3399ff;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #e6e9f0;
+      --blue: #2563eb;
+      --green: #16803c;
+      --amber: #b7791f;
+      --red: #c2410c;
+      --soft-blue: #eef5ff;
+      --soft-green: #eefaf1;
+      --soft-amber: #fff8e6;
+      --soft-red: #fff1ed;
+      --shadow: 0 12px 28px rgba(16, 24, 40, 0.08);
     }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: Inter, Segoe UI, Arial, sans-serif;
-      background: radial-gradient(circle at top left, #fff8ef, var(--bg) 42%, #f0f3ff);
+      background: radial-gradient(circle at top left, #eaf2ff, transparent 36%), var(--bg);
       color: var(--ink);
     }
-    .wrap { max-width: 1180px; margin: 0 auto; padding: 28px; }
+
+    .wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
     header {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      gap: 16px; margin-bottom: 22px;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-end;
+      margin-bottom: 22px;
     }
-    h1 { margin: 0; font-size: 42px; letter-spacing: -1.5px; }
-    .sub { color: var(--muted); margin-top: 6px; font-size: 15px; }
-    .pill {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 10px 14px; border-radius: 999px; background: #fff;
-      box-shadow: 0 10px 30px rgba(40, 24, 52, .08); font-weight: 700;
+
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      letter-spacing: -0.04em;
     }
-    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 6px;
+      font-size: 14px;
+    }
+
+    .status {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 14px;
+      color: var(--muted);
+      box-shadow: var(--shadow);
+      white-space: nowrap;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
     .grid {
-      display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
     }
+
     .card {
-      grid-column: span 4; background: rgba(255,255,255,.82);
-      border: 1px solid var(--line); border-radius: 24px; padding: 20px;
-      box-shadow: 0 18px 50px rgba(50, 34, 62, .08); backdrop-filter: blur(14px);
-      min-height: 170px;
+      grid-column: span 4;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      min-height: 190px;
     }
+
     .wide { grid-column: span 8; }
     .full { grid-column: span 12; }
-    .title { font-size: 14px; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
-    .big { font-size: 34px; font-weight: 850; margin: 12px 0 4px; }
-    .muted { color: var(--muted); }
-    .rows { margin-top: 14px; display: grid; gap: 8px; }
-    .row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); }
-    .row b { text-align: right; }
-    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-    .chip { padding: 7px 10px; border-radius: 999px; background: #f2ecf6; font-size: 13px; font-weight: 700; }
-    .fresh { color: var(--green); }
-    .stale { color: var(--red); }
-    .slight { color: var(--amber); }
+
+    .title {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    .big {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      margin-bottom: 8px;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .rows {
+      display: grid;
+      gap: 9px;
+      margin-top: 14px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 0;
+      border-top: 1px solid var(--line);
+      font-size: 14px;
+    }
+
+    .row span:first-child { color: var(--muted); }
+    .row span:last-child { font-weight: 800; text-align: right; }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: #f2f4f7;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .fresh { color: var(--green); background: var(--soft-green); }
+    .slight { color: var(--amber); background: var(--soft-amber); }
+    .stale { color: var(--red); background: var(--soft-red); }
+
+    .list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border-radius: 16px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+    }
+
+    .item b {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 3px;
+    }
+
+    .item small {
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .item strong {
+      white-space: nowrap;
+      font-size: 14px;
+    }
+
+    .lab-item { background: #fff7f4; border-color: #f4d6cd; }
+    .lab-item strong { color: var(--red); }
+
+    .workout-item { background: #f5fbff; border-color: #d7ebff; }
+    .workout-item strong { color: var(--blue); }
+
+    .food-item { background: #f8fff7; border-color: #d8f0d1; }
+    .food-item strong { color: var(--green); }
+
     pre {
-      white-space: pre-wrap; margin: 12px 0 0; font: 13px/1.45 Consolas, monospace;
-      color: #44394a;
+      white-space: pre-wrap;
+      margin: 12px 0 0;
+      color: #344054;
+      font: 13px/1.45 Consolas, monospace;
     }
+
     button {
-      border: 0; border-radius: 999px; padding: 12px 16px;
-      background: var(--ink); color: white; font-weight: 800; cursor: pointer;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 16px;
+      background: var(--ink);
+      color: white;
+      font-weight: 900;
+      cursor: pointer;
     }
-    button:hover { opacity: .9; }
-    @media (max-width: 850px) {
-      .card, .wide { grid-column: span 12; }
-      header { flex-direction: column; }
-      h1 { font-size: 34px; }
+
+    button:hover { opacity: 0.9; }
+
+    @media (max-width: 900px) {
+      .card, .wide, .full { grid-column: span 12; }
+      header { align-items: flex-start; flex-direction: column; }
     }
   </style>
 </head>
+
 <body>
   <div class="wrap">
     <header>
       <div>
-        <h1>Vitalis Mission Control</h1>
-        <div class="sub">Live health cockpit · freshness, calories, body, workouts, labs</div>
+        <h1>Vitalis Dashboard</h1>
+        <div class="subtitle" id="dateLabel">Loading today’s command center…</div>
       </div>
-      <div>
-        <div class="pill"><span class="dot"></span><span id="topStatus">Loading…</span></div>
-        <button onclick="loadDashboard()" style="margin-left:10px;">Refresh</button>
-      </div>
+      <div class="status" id="topStatus">Loading…</div>
     </header>
 
     <main class="grid">
-      <section class="card wide">
+      <section class="card full">
         <div class="title">Freshness Watchdog</div>
-        <div class="big" id="freshnessHeadline">Loading…</div>
+        <div class="big" id="freshHeadline">Checking sync…</div>
+        <div class="muted">Fresh means 0–1 days behind. Slightly stale means 2–3 days behind.</div>
         <div class="chips" id="freshnessChips"></div>
       </section>
 
       <section class="card">
         <div class="title">Today</div>
         <div class="big" id="todayReadiness">—</div>
-        <div class="muted" id="todayNote">Loading snapshot…</div>
+        <div class="muted" id="coachNote">Loading coach note…</div>
         <div class="rows" id="todayRows"></div>
       </section>
 
       <section class="card">
         <div class="title">Daily Calories</div>
         <div class="big" id="dailyBalance">—</div>
-        <div class="muted" id="dailyConfidence">Loading…</div>
+        <div class="muted" id="dailyConfidence">Loading calorie balance…</div>
         <div class="rows" id="dailyRows"></div>
+      </section>
+
+      <section class="card">
+        <div class="title">Today’s Food</div>
+        <div class="big" id="foodCount">—</div>
+        <div class="muted" id="foodSummary">Loading meals…</div>
+        <div class="list" id="foodRows"></div>
       </section>
 
       <section class="card">
         <div class="title">Weekly Calories</div>
         <div class="big" id="weeklyBalance">—</div>
-        <div class="muted" id="weeklyConfidence">Loading…</div>
+        <div class="muted" id="weeklyConfidence">Loading week…</div>
         <div class="rows" id="weeklyRows"></div>
       </section>
 
       <section class="card">
         <div class="title">Body Metrics</div>
         <div class="big" id="bodyWeight">—</div>
-        <div class="muted" id="bodyBp">Loading…</div>
+        <div class="muted" id="bodyBp">Loading body trend…</div>
+        <div class="chip" id="bodyReminder">Checking reminder…</div>
         <div class="rows" id="bodyRows"></div>
       </section>
 
       <section class="card wide">
         <div class="title">Lab Priorities</div>
         <div class="big" id="labHeadline">—</div>
-        <pre id="labRows">Loading labs…</pre>
+        <div class="muted">Abnormal markers that deserve follow-up, not panic.</div>
+        <div class="list" id="labRows"></div>
       </section>
 
       <section class="card full">
         <div class="title">Latest Workouts</div>
-        <pre id="workoutRows">Loading workouts…</pre>
+        <div class="big" id="workoutHeadline">—</div>
+        <div class="muted">Detailed workout rows from Vitalis live data.</div>
+        <div class="list" id="workoutRows"></div>
       </section>
     </main>
   </div>
 
   <script>
-    const API = "https://ltnlhxsdmcsjpcpxvvxl.supabase.co/functions/v1/vitalis-api";
+    const BASE_URL = "https://ltnlhxsdmcsjpcpxvvxl.supabase.co/functions/v1/vitalis-api";
 
-    const today = new Date().toISOString().slice(0, 10);
-    const weekStart = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const weekStartDate = new Date(now);
+    weekStartDate.setDate(now.getDate() - 6);
+    const weekStart = weekStartDate.toISOString().slice(0, 10);
 
-    function linesToMap(message) {
-      const map = {};
-      String(message || "").split("\n").forEach(line => {
-        const index = line.indexOf(": ");
-        if (index > -1) map[line.slice(0, index)] = line.slice(index + 2);
-      });
-      return map;
-    }
+    document.getElementById("dateLabel").textContent = `Today · ${today}`;
 
     async function getMessage(path) {
-      const res = await fetch(`${API}${path}`);
-      const json = await res.json();
-      return json.message || "";
+      const response = await fetch(`${BASE_URL}${path}`);
+      const payload = await response.json();
+      if (!response.ok || payload.status === "error") {
+        throw new Error(payload.message || `Request failed: ${path}`);
+      }
+      return payload.message || "";
+    }
+
+    function parseMessage(message) {
+      const output = {};
+      message.split("\n").forEach(line => {
+        const index = line.indexOf(": ");
+        if (index > -1) {
+          output[line.slice(0, index)] = line.slice(index + 2);
+        }
+      });
+      return output;
+    }
+
+    function num(value) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function valueOrDash(value) {
+      return value === null || value === undefined || value === "null" || value === "" ? "—" : value;
     }
 
     function row(label, value) {
-      return `<div class="row"><span>${label}</span><b>${value ?? "—"}</b></div>`;
+      return `<div class="row"><span>${label}</span><span>${valueOrDash(value)}</span></div>`;
     }
 
     function statusClass(text) {
-      if (String(text).includes("stale") && !String(text).includes("slightly")) return "stale";
-      if (String(text).includes("slightly")) return "slight";
-      return "fresh";
+      if (String(text).includes("status: stale")) return "stale";
+      if (String(text).includes("status: slightly_stale")) return "slight";
+      if (String(text).includes("status: fresh")) return "fresh";
+      return "";
+    }
+
+    function prettySignalName(name) {
+      return {
+        snapshot: "Snapshot",
+        daily_hr: "Daily HR",
+        sleep_hr: "Sleep HR",
+        spo2: "SpO₂",
+        snapshot_workout: "Workout snapshot",
+        workout_table: "Workout details",
+      }[name] || name;
+    }
+
+    function prettyFreshnessLine(line) {
+      const name = line.split(": ")[0];
+      const date = line.match(/: ([^;]+)/)?.[1] || "Unavailable";
+      const lag = line.match(/days_behind: ([^;]+)/)?.[1] || "Unavailable";
+      const status = line.match(/status: ([^;]+)/)?.[1] || "unavailable";
+
+      const statusText = {
+        fresh: lag === "0" ? "Fresh today" : "Fresh",
+        slightly_stale: `Slightly stale · ${lag} days behind`,
+        stale: `Stale · ${lag} days behind`,
+        unavailable: "Unavailable",
+      }[status] || status;
+
+      return `<span class="chip ${statusClass(line)}"><b>${prettySignalName(name)}</b> · ${statusText} · ${date}</span>`;
+    }
+
+    function balanceText(value) {
+      const n = num(value);
+      if (n === null) return "Not enough data";
+      if (n < 0) return `${Math.abs(n).toFixed(0)} kcal deficit`;
+      if (n > 0) return `${Math.abs(n).toFixed(0)} kcal surplus`;
+      return "Balanced";
+    }
+
+    function nextMondayText() {
+      const date = new Date();
+      const day = date.getDay();
+      const daysUntilMonday = (8 - day) % 7 || 7;
+      date.setDate(date.getDate() + daysUntilMonday);
+      return date.toISOString().slice(0, 10);
     }
 
     async function loadDashboard() {
       document.getElementById("topStatus").textContent = "Refreshing…";
 
-      const [freshness, snapshot, daily, weekly, body, labs, workouts] = await Promise.all([
+      const [freshness, snapshot, daily, foodHistory, weekly, body, labs, workouts] = await Promise.all([
         getMessage("/freshness-watchdog-message"),
         getMessage(`/snapshot-message?date=${today}`),
         getMessage(`/daily-calorie-balance-message?date=${today}`),
+        getMessage("/food-intake-history-message"),
         getMessage(`/weekly-calorie-balance-message?start_date=${weekStart}&end_date=${today}`),
         getMessage("/body-metrics-trend-message"),
         getMessage("/lab-priority-message"),
         getMessage("/latest-workouts-message"),
       ]);
 
-      const f = linesToMap(freshness);
+      const s = parseMessage(snapshot);
+      const d = parseMessage(daily);
+      const w = parseMessage(weekly);
+      const b = parseMessage(body);
+
       const staleCount = freshness.split("\n").filter(line => line.includes("status: stale")).length;
       const slightCount = freshness.split("\n").filter(line => line.includes("status: slightly_stale")).length;
-      const headline = staleCount ? "Stale signals" : slightCount ? "Mostly fresh" : "Fresh";
-      document.getElementById("freshnessHeadline").textContent = headline;
-      document.getElementById("topStatus").textContent = headline;
+
+      document.getElementById("freshHeadline").textContent =
+        staleCount ? `${staleCount} stale signals` : slightCount ? `${slightCount} slightly stale signals` : "All key signals fresh";
 
       document.getElementById("freshnessChips").innerHTML = freshness.split("\n")
         .filter(line => line.includes("status:"))
-        .map(line => `<span class="chip ${statusClass(line)}">${line}</span>`)
+        .map(prettyFreshnessLine)
         .join("");
 
-      const s = linesToMap(snapshot);
-      document.getElementById("todayReadiness").textContent = s.vitalis_readiness_score ? `${s.vitalis_readiness_score} readiness` : "—";
-      document.getElementById("todayNote").textContent = s.vitalis_coach_note || "No coach note";
-      document.getElementById("todayRows").innerHTML =
-        row("Date", s.snapshot_date) +
-        row("Steps", s.steps) +
-        row("Workout min", s.workout_total_duration_minutes) +
-        row("Workout kcal", s.workout_total_calories) +
-        row("Recovery", s.vitalis_recovery_score);
+      const readiness = num(s.vitalis_readiness_score);
+      const todayMood = readiness === null
+        ? "Awaiting signal"
+        : readiness >= 85
+          ? "Strong day"
+          : readiness >= 70
+            ? "Ready with care"
+            : "Recovery-first";
 
-      const d = linesToMap(daily);
-      document.getElementById("dailyBalance").textContent = d.estimated_balance_intake_minus_burn ? `${d.estimated_balance_intake_minus_burn} kcal` : "—";
-      document.getElementById("dailyConfidence").textContent = `Confidence: ${d.confidence || "unknown"}`;
+      document.getElementById("todayReadiness").textContent = todayMood;
+      document.getElementById("coachNote").textContent = s.vitalis_coach_note || "No coach note yet.";
+
+      document.getElementById("todayRows").innerHTML =
+        row("Readiness", s.vitalis_readiness_score) +
+        row("Recovery", s.vitalis_recovery_score) +
+        row("Training load", s.vitalis_training_load_score) +
+        row("Steps", s.steps) +
+        row("Workout minutes", s.workout_total_duration_minutes) +
+        row("Workout calories", s.workout_total_calories);
+
+      document.getElementById("dailyBalance").textContent = balanceText(d.estimated_balance_intake_minus_burn);
+      document.getElementById("dailyConfidence").textContent = `Confidence: ${valueOrDash(d.confidence)} · ${valueOrDash(d.burn_method)}`;
+
       document.getElementById("dailyRows").innerHTML =
         row("Intake", d.intake_calories) +
         row("Burn", d.burn_calories) +
-        row("Protein", `${d.protein_g || "—"} g`) +
-        row("Method", d.burn_method);
+        row("Protein", `${valueOrDash(d.protein_g)} g`) +
+        row("Food rows", d.food_rows);
 
-      const w = linesToMap(weekly);
-      document.getElementById("weeklyBalance").textContent = w.average_balance_intake_minus_burn ? `${w.average_balance_intake_minus_burn} kcal/day` : "—";
-      document.getElementById("weeklyConfidence").textContent = `Confidence: ${w.confidence || "unknown"}`;
+      const todayFoodLines = foodHistory.split("\n").filter(line => line.startsWith(`date: ${today};`));
+
+      document.getElementById("foodCount").textContent = `${todayFoodLines.length} meals`;
+      document.getElementById("foodSummary").textContent = todayFoodLines.length ? "Logged today" : "No meals logged today";
+
+      document.getElementById("foodRows").innerHTML = todayFoodLines.map(line => {
+        const meal = line.match(/meal: ([^;]+)/)?.[1] || "meal";
+        const description = line.match(/description: ([^;]+)/)?.[1] || "—";
+        const calories = line.match(/calories: ([^;]+)/)?.[1] || "—";
+        const protein = line.match(/protein_g: ([^;]+)/)?.[1] || "—";
+
+        return `<div class="item food-item">
+          <div><b>${meal}</b><small>${description}</small></div>
+          <strong>${calories} kcal · ${protein}g protein</strong>
+        </div>`;
+      }).join("") || "<div class='muted'>No food logged today.</div>";
+
+      document.getElementById("weeklyBalance").textContent = balanceText(w.average_balance_intake_minus_burn);
+      document.getElementById("weeklyConfidence").textContent = `Confidence: ${valueOrDash(w.confidence)} · ${weekStart} to ${today}`;
+
       document.getElementById("weeklyRows").innerHTML =
-        row("Days food", w.days_with_food) +
-        row("Days burn", w.days_with_burn) +
+        row("Days with food", w.days_with_food) +
+        row("Days with burn", w.days_with_burn) +
         row("Avg intake", w.average_intake_calories) +
         row("Avg burn", w.average_burn_calories);
 
-      const b = linesToMap(body);
-      document.getElementById("bodyWeight").textContent = b.latest_weight_kg ? `${b.latest_weight_kg} kg` : "—";
-      document.getElementById("bodyBp").textContent = `Latest BP: ${b.latest_bp || "—"}`;
+      document.getElementById("bodyWeight").textContent =
+        b.latest_weight_kg ? `${b.latest_weight_kg} kg` : "No weight";
+
+      document.getElementById("bodyBp").textContent =
+        b.latest_bp ? `Latest BP: ${b.latest_bp}` : "No BP logged";
+
+      const latestBodyDate = b.latest_weight_date || b.latest_bp_date || "Unavailable";
+      const isMonday = new Date().getDay() === 1;
+      document.getElementById("bodyReminder").textContent =
+        `${isMonday ? "Body check-in due today" : `Next body check-in: ${nextMondayText()}`} · latest: ${latestBodyDate}`;
+
       document.getElementById("bodyRows").innerHTML =
-        row("Weight change", `${b.weight_change_kg || "—"} kg`) +
-        row("Avg systolic", b.average_systolic_bp) +
-        row("Avg diastolic", b.average_diastolic_bp) +
+        row("Weight change", `${valueOrDash(b.weight_change_kg)} kg`) +
+        row("Avg systolic BP", b.average_systolic_bp) +
+        row("Avg diastolic BP", b.average_diastolic_bp) +
         row("Confidence", b.confidence);
 
-      const labLines = labs.split("\n").filter(line => line.startsWith("date:")).slice(0, 8);
-      document.getElementById("labHeadline").textContent = `${labLines.length} active flags`;
-      document.getElementById("labRows").textContent = labLines.join("\n") || labs;
+      const labLines = labs.split("\n").filter(line => line.startsWith("date:")).slice(0, 6);
+      document.getElementById("labHeadline").textContent = `${labLines.length} priorities`;
 
-      document.getElementById("workoutRows").textContent = workouts;
+      document.getElementById("labRows").innerHTML = labLines.map(line => {
+        const date = line.match(/date: ([^;]+)/)?.[1] || "—";
+        const category = line.match(/category: ([^;]+)/)?.[1] || "Lab";
+        const marker = line.match(/marker: ([^;]+)/)?.[1] || "Marker";
+        const value = line.match(/value: ([^;]+)/)?.[1] || "—";
+        const flag = line.match(/flag: ([^;]+)/)?.[1] || "flagged";
+
+        return `<div class="item lab-item">
+          <div><b>${marker}</b><small>${category} · ${date} · ${flag}</small></div>
+          <strong>${value}</strong>
+        </div>`;
+      }).join("") || "<div class='muted'>No active lab priorities found.</div>";
+
+      const workoutLines = workouts.split("\n").filter(line => line.startsWith("date:")).slice(0, 8);
+      document.getElementById("workoutHeadline").textContent = `${workoutLines.length} recent sessions`;
+
+      document.getElementById("workoutRows").innerHTML = workoutLines.map(line => {
+        const date = line.match(/date: ([^;]+)/)?.[1] || "—";
+        const type = line.match(/type: ([^;]+)/)?.[1] || "Workout";
+        const duration = line.match(/duration_minutes: ([^;]+)/)?.[1] || "—";
+        const calories = line.match(/calories: ([^;]+)/)?.[1] || "—";
+        const avgHr = line.match(/average_heart_rate: ([^;]+)/)?.[1] || "—";
+
+        return `<div class="item workout-item">
+          <div><b>${type}</b><small>${date} · ${duration} min · avg HR ${avgHr}</small></div>
+          <strong>${calories} kcal</strong>
+        </div>`;
+      }).join("") || "<div class='muted'>No recent workouts found.</div>";
+
+      document.getElementById("topStatus").textContent = `Updated · ${new Date().toLocaleTimeString()}`;
     }
 
     loadDashboard().catch(error => {
-      document.getElementById("topStatus").textContent = "Error";
-      document.body.insertAdjacentHTML("beforeend", `<pre style="padding:20px;color:#e85d75">${error.message}</pre>`);
+      document.getElementById("topStatus").textContent = "Dashboard error";
+      document.body.insertAdjacentHTML(
+        "beforeend",
+        `<pre style="margin:28px; color:#c2410c;">${error.message}</pre>`
+      );
+      console.error(error);
     });
   </script>
 </body>
