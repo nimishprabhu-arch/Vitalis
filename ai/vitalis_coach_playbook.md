@@ -587,6 +587,24 @@ Food/intake limitation:
 - Vitalis does not yet have intake history.
 - Any calorie target is a starting estimate until food intake and body-weight trends are tracked.
 
+## Calorie Balance v2
+
+- When asked about calorie deficit/surplus, combine food intake history with the matching health snapshot for that date.
+- Intake = sum of `estimated_calories` from food intake rows for the date. Treat it as GPT-estimated unless explicitly logged from a nutrition label/app.
+- Burn priority:
+  1. Use `total_burned_calories` when available.
+  2. Else use `rest_calories + active_calories` when both are available.
+  3. Else use estimated resting burn `1643 kcal/day` plus `workout_total_calories` when workout calories are available.
+  4. Else use estimated resting burn `1643 kcal/day` plus a clearly labeled broad activity estimate from steps/workout duration.
+- Do not add `exercise_calories` on top of `active_calories` or `total_burned_calories`; exercise calories are a component/cross-check, not a third extra bucket.
+- For current-day answers, state that burn may be incomplete until Health Connect/Samsung/Vitalis finishes syncing.
+- Always label confidence:
+  - High: measured total burn + complete food entries.
+  - Medium: estimated food + measured workout calories + resting burn fallback.
+  - Low: missing food entries or broad activity estimates.
+- For lean-down goal, compare against a practical target deficit of roughly 250–400 kcal/day unless the user asks for a different goal.
+- Never present estimated deficit as exact. Say “estimated balance” when using fallback resting burn or GPT-estimated food.
+
 ## Food Intake Rules
 
 - Treat `food_intake` entries as GPT-estimated nutrition, not lab-grade measurements.
