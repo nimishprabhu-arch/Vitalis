@@ -247,6 +247,36 @@
   }
 },
 
+    "/delete-food-intake": {
+      "post": {
+        "operationId": "deleteFoodIntake",
+        "summary": "Delete a food intake entry by id.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Food intake row id to delete."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Food intake deleted."
+          }
+        }
+      }
+    },
+
+
     "/add-body-metric": {
       "post": {
         "operationId": "addBodyMetric",

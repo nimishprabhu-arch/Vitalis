@@ -618,6 +618,7 @@ Food save behavior:
 - Include assumptions and confidence every time.
 - Prefer medium confidence for common foods with approximate portions; low confidence for vague portions, restaurant meals, alcohol pours, mixed dishes, or missing quantities.
 - Do not ask excessive follow-up questions unless the estimate would be meaningless.
+- Before deleting a food entry, identify the row clearly and ask for confirmation unless the user has explicitly requested deleting that exact row id.
 
 Confirmation format:
 - After saving, confirm briefly: date, meal type, description, calories, protein/carbs/fat/fiber, and confidence.

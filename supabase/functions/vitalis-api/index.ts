@@ -75,6 +75,25 @@ async function supabaseInsertFoodIntake(row: Record<string, unknown>) {
   return JSON.parse(responseText);
 }
 
+async function supabaseDeleteFoodIntake(id: string) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/food_intake?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      Prefer: "return=representation",
+    },
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Supabase ${response.status}: ${responseText}`);
+  }
+
+  return responseText ? JSON.parse(responseText) : [];
+}
+
 async function supabaseInsertBodyMetric(row: Record<string, unknown>) {
   const response = await fetch(`${SUPABASE_URL}/rest/v1/body_metrics?on_conflict=metric_date`, {
     method: "POST",
@@ -1339,6 +1358,26 @@ Deno.serve(async (request) => {
       return jsonResponse({
         status: "ok",
         message: "Body metric saved.",
+        rows,
+      });
+    }
+	
+	    if (request.method === "POST" && path === "delete-food-intake") {
+      const payload = await request.json();
+      const id = textOrNull(pick(payload, "id", "id"));
+
+      if (!id) {
+        return jsonResponse({
+          status: "error",
+          message: "Missing required field: id",
+        }, 400);
+      }
+
+      const rows = await supabaseDeleteFoodIntake(id);
+
+      return jsonResponse({
+        status: "ok",
+        message: "Food intake deleted.",
         rows,
       });
     }
