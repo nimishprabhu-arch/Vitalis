@@ -365,7 +365,7 @@ async function getBodyMetricsHistoryMessage() {
     "body_metrics_history",
     `rows: ${rows.length}`,
     ...rows.map((row: any) =>
-      `date: ${row.metric_date}; weight_kg: ${round(row.weight_kg)}; bp: ${row.systolic_bp ?? "Unavailable"}/${row.diastolic_bp ?? "Unavailable"}; notes: ${row.notes ?? ""}; source: ${row.source ?? "Unavailable"}`
+    `date: ${row.metric_date}; weight_kg: ${round(row.weight_kg)}; bp: ${row.systolic_bp ?? "Unavailable"}/${row.diastolic_bp ?? "Unavailable"}; notes: ${row.notes ?? ""}; source: ${row.source ?? "Unavailable"}`
     ),
   ]);
 }
