@@ -351,6 +351,41 @@ async function getFoodIntakeHistoryMessage() {
   ]);
 }
 
+async function getFoodDailySummaryMessage(date: string) {
+  const rows = await supabaseGet(
+    `food_intake?select=estimated_calories,protein_g,carbs_g,fat_g,fiber_g,confidence&intake_date=eq.${encodeURIComponent(date)}`
+  );
+
+  const totalCalories = rows.reduce((sum: number, row: any) => sum + (Number(row.estimated_calories) || 0), 0);
+  const totalProtein = rows.reduce((sum: number, row: any) => sum + (Number(row.protein_g) || 0), 0);
+  const totalCarbs = rows.reduce((sum: number, row: any) => sum + (Number(row.carbs_g) || 0), 0);
+  const totalFat = rows.reduce((sum: number, row: any) => sum + (Number(row.fat_g) || 0), 0);
+  const totalFiber = rows.reduce((sum: number, row: any) => sum + (Number(row.fiber_g) || 0), 0);
+
+  const confidenceValues = rows
+    .map((row: any) => row.confidence)
+    .filter((value: unknown) => value !== null && value !== undefined && value !== "");
+
+  const confidence = confidenceValues.includes("low")
+    ? "low"
+    : confidenceValues.includes("medium")
+      ? "medium"
+      : confidenceValues.includes("high")
+        ? "high"
+        : "unknown";
+
+  return messageResponse([
+    "food_daily_summary",
+    `date: ${date}`,
+    `rows: ${rows.length}`,
+    `total_calories: ${round(totalCalories)}`,
+    `protein_g: ${round(totalProtein)}`,
+    `carbs_g: ${round(totalCarbs)}`,
+    `fat_g: ${round(totalFat)}`,
+    `fiber_g: ${round(totalFiber)}`,
+    `confidence: ${confidence}`,
+  ]);
+}
 
 async function getBodyMetricsHistoryMessage() {
   const rows = await supabaseGet(
@@ -1527,6 +1562,19 @@ if (path === "body-metrics-history-message") return await getBodyMetricsHistoryM
 
 if (path === "food-intake-history-message") return await getFoodIntakeHistoryMessage();
 
+if (path === "food-daily-summary-message") {
+  const date = new URL(request.url).searchParams.get("date");
+
+  if (!date) {
+    return messageResponse([
+      "error: missing date parameter",
+      "example: /food-daily-summary-message?date=2026-08-19",
+    ]);
+  }
+
+  return await getFoodDailySummaryMessage(date);
+}
+
 if (path === "sync-health-status-message") return await getSyncHealthStatusMessage();
 
 if (path === "latest-workouts-message") {
@@ -1836,6 +1884,7 @@ if (path === "sleep-hr-history-message") {
         "/body-metrics-history-message",
         "/add-body-metric",
         "/food-intake-history-message",
+		"/food-daily-summary-message?date=YYYY-MM-DD",
         "/add-food-intake",
         "/delete-food-intake",
         "/vo2-history-message",
