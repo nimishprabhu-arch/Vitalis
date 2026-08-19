@@ -609,6 +609,18 @@
       }
     },
 	
+    "/freshness-watchdog-message": {
+      "get": {
+        "operationId": "getFreshnessWatchdogMessage",
+        "summary": "Get freshness status for key Vitalis health data signals.",
+        "responses": {
+          "200": {
+            "description": "Freshness status by health signal."
+          }
+        }
+      }
+    },
+
 "/sleep-hr-history-message": {
   "get": {
     "operationId": "getSleepHrHistoryMessage",

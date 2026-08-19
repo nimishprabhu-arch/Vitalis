@@ -657,6 +657,62 @@ async function getSyncHealthStatusMessage() {
   ]);
 }
 
+function daysBehind(dateText: string | null | undefined) {
+  if (!dateText || dateText === "Unavailable") return null;
+
+  const today = new Date();
+  const date = new Date(`${dateText}T00:00:00`);
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  return Math.floor((todayOnly.getTime() - date.getTime()) / 86400000);
+}
+
+function freshnessLabel(days: number | null) {
+  if (days === null) return "unavailable";
+  if (days <= 1) return "fresh";
+  if (days <= 3) return "slightly_stale";
+  return "stale";
+}
+
+async function getFreshnessWatchdogMessage() {
+  const rows = await supabaseGet(
+    `${TABLE}?select=snapshot_date,daily_hr_average,sleep_average_heart_rate,spo2_average,vo2_max,workout_session_count,workout_total_duration_minutes,source&order=snapshot_date.desc&limit=60`
+  );
+
+  const workouts = await supabaseGet(
+    "workouts?select=workout_date&order=workout_date.desc&limit=1"
+  );
+
+  function latestDateFor(field: string) {
+    const row = rows.find((item: any) => item[field] !== null && item[field] !== undefined);
+    return row?.snapshot_date ?? "Unavailable";
+  }
+
+  const latestSnapshotWorkoutRow = rows.find((item: any) =>
+    Number(item.workout_session_count ?? 0) > 0 || Number(item.workout_total_duration_minutes ?? 0) > 0
+  );
+
+  const metrics = [
+    ["snapshot", rows[0]?.snapshot_date ?? "Unavailable"],
+    ["daily_hr", latestDateFor("daily_hr_average")],
+    ["sleep_hr", latestDateFor("sleep_average_heart_rate")],
+    ["spo2", latestDateFor("spo2_average")],
+    ["snapshot_workout", latestSnapshotWorkoutRow?.snapshot_date ?? "Unavailable"],
+    ["workout_table", workouts[0]?.workout_date ?? "Unavailable"],
+  ];
+
+  return messageResponse([
+    "freshness_watchdog",
+    ...metrics.map(([name, date]) => {
+      const lag = daysBehind(date);
+      return `${name}: ${date}; days_behind: ${lag ?? "Unavailable"}; status: ${freshnessLabel(lag)}`;
+    }),
+    `latest_source: ${rows[0]?.source ?? "Unavailable"}`,
+    "note: Fresh means 0-1 days behind, slightly_stale means 2-3 days, stale means more than 3 days.",
+  ]);
+}
+
+
 async function getLatestWorkoutsMessage() {
   const rows = await supabaseGet(
     "workouts?select=workout_date,exercise_type_label,duration_minutes,calories,distance_meters,average_heart_rate,minimum_heart_rate,maximum_heart_rate&order=workout_date.desc,start_time.desc&limit=20"
@@ -1819,6 +1875,8 @@ if (path === "weekly-calorie-balance-message") {
 
 if (path === "sync-health-status-message") return await getSyncHealthStatusMessage();
 
+if (path === "freshness-watchdog-message") return await getFreshnessWatchdogMessage();
+
 if (path === "latest-workouts-message") {
   return await getLatestWorkoutsMessage();
 }
@@ -2143,6 +2201,7 @@ if (path === "sleep-hr-history-message") {
         "/lab-marker-history-message?marker=LDL",
         "/upload-snapshot",
         "/upload-calorie-snapshots",
+		"/freshness-watchdog-message",
       ],
     });
   } catch (error) {
