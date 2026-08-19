@@ -596,6 +596,19 @@
       }
     },
 	
+	
+    "/lab-priority-message": {
+      "get": {
+        "operationId": "getLabPriorityMessage",
+        "summary": "Get current abnormal lab priorities from live Vitalis lab data.",
+        "responses": {
+          "200": {
+            "description": "Abnormal lab priority summary."
+          }
+        }
+      }
+    },
+	
 "/sleep-hr-history-message": {
   "get": {
     "operationId": "getSleepHrHistoryMessage",

@@ -1213,6 +1213,26 @@ async function getLatestLabsSummaryMessage() {
   return messageResponse(lines);
 }
 
+async function getLabPriorityMessage() {
+  const rows = await supabaseGet(
+    "medical_lab_results?select=test_date,category,marker,value,unit,reference_low,reference_high,flag,source_file&flag=neq.normal&order=test_date.desc&limit=50"
+  );
+
+  if (!rows || rows.length === 0) {
+    return messageResponse(["lab_priority", "No abnormal lab priorities found."]);
+  }
+
+  return messageResponse([
+    "lab_priority",
+    `rows: ${rows.length}`,
+    ...rows.map((row: any) =>
+      `date: ${row.test_date}; category: ${row.category}; marker: ${row.marker}; value: ${row.value} ${row.unit ?? ""}; reference: ${row.reference_low ?? "Unavailable"}-${row.reference_high ?? "Unavailable"}; flag: ${row.flag}; source_file: ${row.source_file}`
+    ),
+    "note: Prioritize repeated, high-severity, or clinically important abnormalities. Verify source reports for medical decisions.",
+  ]);
+}
+
+
 async function getLatestLabsMessage() {
   const rows = await supabaseGet(
     "medical_lab_results?select=test_date,panel,marker,raw_marker,canonical_marker,category,value,result_text,unit,reference_low,reference_high,flag,source_file&order=test_date.desc,canonical_marker.asc&limit=30"
@@ -1846,6 +1866,7 @@ if (path === "sleep-hr-history-message") {
     }
 	
 	if (path === "latest-labs-summary-message") return await getLatestLabsSummaryMessage();
+	if (path === "lab-priority-message") return await getLabPriorityMessage();
 
    if (path === "latest-labs-message") return jsonResponse(await getLatestLabsMessage());
    
@@ -2118,6 +2139,7 @@ if (path === "sleep-hr-history-message") {
         "/workout-history-message",
 		"/weekly-calorie-balance-message?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD",
         "/calorie-history-message",
+		"/lab-priority-message",
         "/lab-marker-history-message?marker=LDL",
         "/upload-snapshot",
         "/upload-calorie-snapshots",
