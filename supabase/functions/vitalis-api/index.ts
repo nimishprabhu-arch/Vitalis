@@ -387,6 +387,61 @@ async function getFoodDailySummaryMessage(date: string) {
   ]);
 }
 
+async function getDailyCalorieBalanceMessage(date: string) {
+  const foodRows = await supabaseGet(
+    `food_intake?select=estimated_calories,protein_g,carbs_g,fat_g,fiber_g,confidence&intake_date=eq.${encodeURIComponent(date)}`
+  );
+
+  const snapshotRows = await supabaseGet(
+    `${TABLE}?select=snapshot_date,total_burned_calories,rest_calories,active_calories,workout_total_calories,source&snapshot_date=eq.${encodeURIComponent(date)}&limit=1`
+  );
+
+  const snapshot = snapshotRows?.[0] ?? null;
+
+  const intakeCalories = foodRows.reduce((sum: number, row: any) => sum + (Number(row.estimated_calories) || 0), 0);
+  const protein = foodRows.reduce((sum: number, row: any) => sum + (Number(row.protein_g) || 0), 0);
+  const carbs = foodRows.reduce((sum: number, row: any) => sum + (Number(row.carbs_g) || 0), 0);
+  const fat = foodRows.reduce((sum: number, row: any) => sum + (Number(row.fat_g) || 0), 0);
+  const fiber = foodRows.reduce((sum: number, row: any) => sum + (Number(row.fiber_g) || 0), 0);
+
+  let burnCalories = null;
+  let burnMethod = "unavailable";
+  let confidence = "low";
+
+  if (snapshot?.total_burned_calories != null) {
+    burnCalories = Number(snapshot.total_burned_calories);
+    burnMethod = "measured_total_burned_calories";
+    confidence = foodRows.length > 0 ? "high" : "medium";
+  } else if (snapshot?.rest_calories != null && snapshot?.active_calories != null) {
+    burnCalories = Number(snapshot.rest_calories) + Number(snapshot.active_calories);
+    burnMethod = "measured_rest_plus_active_calories";
+    confidence = foodRows.length > 0 ? "high" : "medium";
+  } else if (snapshot?.workout_total_calories != null) {
+    burnCalories = 1643 + Number(snapshot.workout_total_calories);
+    burnMethod = "estimated_resting_burn_plus_measured_workout_calories";
+    confidence = foodRows.length > 0 ? "medium" : "low";
+  }
+
+  const estimatedBalance = burnCalories != null ? intakeCalories - burnCalories : null;
+
+  return messageResponse([
+    "daily_calorie_balance",
+    `date: ${date}`,
+    `food_rows: ${foodRows.length}`,
+    `intake_calories: ${round(intakeCalories)}`,
+    `protein_g: ${round(protein)}`,
+    `carbs_g: ${round(carbs)}`,
+    `fat_g: ${round(fat)}`,
+    `fiber_g: ${round(fiber)}`,
+    `burn_calories: ${round(burnCalories)}`,
+    `burn_method: ${burnMethod}`,
+    `estimated_balance_intake_minus_burn: ${round(estimatedBalance)}`,
+    `confidence: ${confidence}`,
+    `snapshot_source: ${snapshot?.source ?? "Unavailable"}`,
+    "note: Negative balance means estimated deficit. Positive balance means estimated surplus. Fallback resting burn uses 1643 kcal/day.",
+  ]);
+}
+
 async function getBodyMetricsHistoryMessage() {
   const rows = await supabaseGet(
     "body_metrics?select=metric_date,weight_kg,systolic_bp,diastolic_bp,notes,source&order=metric_date.asc"
@@ -1574,6 +1629,20 @@ if (path === "food-daily-summary-message") {
 
   return await getFoodDailySummaryMessage(date);
 }
+
+if (path === "daily-calorie-balance-message") {
+  const date = new URL(request.url).searchParams.get("date");
+
+  if (!date) {
+    return messageResponse([
+      "error: missing date parameter",
+      "example: /daily-calorie-balance-message?date=2026-08-19",
+    ]);
+  }
+
+  return await getDailyCalorieBalanceMessage(date);
+}
+
 
 if (path === "sync-health-status-message") return await getSyncHealthStatusMessage();
 

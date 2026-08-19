@@ -325,6 +325,29 @@
       }
     },
 
+    "/daily-calorie-balance-message": {
+      "get": {
+        "operationId": "getDailyCalorieBalanceMessage",
+        "summary": "Get estimated daily calorie intake, burn, and balance for one date.",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Date in YYYY-MM-DD format."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daily calorie balance summary."
+          }
+        }
+      }
+    },
+
     "/food-daily-summary-message": {
       "get": {
         "operationId": "getFoodDailySummaryMessage",
