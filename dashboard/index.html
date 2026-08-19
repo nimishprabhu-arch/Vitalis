@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vitalis Mission Control</title>
+  <style>
+    :root {
+      --bg: #f7f2f7;
+      --card: #ffffff;
+      --ink: #211827;
+      --muted: #746979;
+      --line: #eadfea;
+      --green: #20b486;
+      --amber: #f3a53f;
+      --red: #e85d75;
+      --purple: #7357d8;
+      --blue: #3399ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+      background: radial-gradient(circle at top left, #fff8ef, var(--bg) 42%, #f0f3ff);
+      color: var(--ink);
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 28px; }
+    header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 16px; margin-bottom: 22px;
+    }
+    h1 { margin: 0; font-size: 42px; letter-spacing: -1.5px; }
+    .sub { color: var(--muted); margin-top: 6px; font-size: 15px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 14px; border-radius: 999px; background: #fff;
+      box-shadow: 0 10px 30px rgba(40, 24, 52, .08); font-weight: 700;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); }
+    .grid {
+      display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px;
+    }
+    .card {
+      grid-column: span 4; background: rgba(255,255,255,.82);
+      border: 1px solid var(--line); border-radius: 24px; padding: 20px;
+      box-shadow: 0 18px 50px rgba(50, 34, 62, .08); backdrop-filter: blur(14px);
+      min-height: 170px;
+    }
+    .wide { grid-column: span 8; }
+    .full { grid-column: span 12; }
+    .title { font-size: 14px; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+    .big { font-size: 34px; font-weight: 850; margin: 12px 0 4px; }
+    .muted { color: var(--muted); }
+    .rows { margin-top: 14px; display: grid; gap: 8px; }
+    .row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); }
+    .row b { text-align: right; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .chip { padding: 7px 10px; border-radius: 999px; background: #f2ecf6; font-size: 13px; font-weight: 700; }
+    .fresh { color: var(--green); }
+    .stale { color: var(--red); }
+    .slight { color: var(--amber); }
+    pre {
+      white-space: pre-wrap; margin: 12px 0 0; font: 13px/1.45 Consolas, monospace;
+      color: #44394a;
+    }
+    button {
+      border: 0; border-radius: 999px; padding: 12px 16px;
+      background: var(--ink); color: white; font-weight: 800; cursor: pointer;
+    }
+    button:hover { opacity: .9; }
+    @media (max-width: 850px) {
+      .card, .wide { grid-column: span 12; }
+      header { flex-direction: column; }
+      h1 { font-size: 34px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Vitalis Mission Control</h1>
+        <div class="sub">Live health cockpit · freshness, calories, body, workouts, labs</div>
+      </div>
+      <div>
+        <div class="pill"><span class="dot"></span><span id="topStatus">Loading…</span></div>
+        <button onclick="loadDashboard()" style="margin-left:10px;">Refresh</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card wide">
+        <div class="title">Freshness Watchdog</div>
+        <div class="big" id="freshnessHeadline">Loading…</div>
+        <div class="chips" id="freshnessChips"></div>
+      </section>
+
+      <section class="card">
+        <div class="title">Today</div>
+        <div class="big" id="todayReadiness">—</div>
+        <div class="muted" id="todayNote">Loading snapshot…</div>
+        <div class="rows" id="todayRows"></div>
+      </section>
+
+      <section class="card">
+        <div class="title">Daily Calories</div>
+        <div class="big" id="dailyBalance">—</div>
+        <div class="muted" id="dailyConfidence">Loading…</div>
+        <div class="rows" id="dailyRows"></div>
+      </section>
+
+      <section class="card">
+        <div class="title">Weekly Calories</div>
+        <div class="big" id="weeklyBalance">—</div>
+        <div class="muted" id="weeklyConfidence">Loading…</div>
+        <div class="rows" id="weeklyRows"></div>
+      </section>
+
+      <section class="card">
+        <div class="title">Body Metrics</div>
+        <div class="big" id="bodyWeight">—</div>
+        <div class="muted" id="bodyBp">Loading…</div>
+        <div class="rows" id="bodyRows"></div>
+      </section>
+
+      <section class="card wide">
+        <div class="title">Lab Priorities</div>
+        <div class="big" id="labHeadline">—</div>
+        <pre id="labRows">Loading labs…</pre>
+      </section>
+
+      <section class="card full">
+        <div class="title">Latest Workouts</div>
+        <pre id="workoutRows">Loading workouts…</pre>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const API = "https://ltnlhxsdmcsjpcpxvvxl.supabase.co/functions/v1/vitalis-api";
+
+    const today = new Date().toISOString().slice(0, 10);
+    const weekStart = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+
+    function linesToMap(message) {
+      const map = {};
+      String(message || "").split("\n").forEach(line => {
+        const index = line.indexOf(": ");
+        if (index > -1) map[line.slice(0, index)] = line.slice(index + 2);
+      });
+      return map;
+    }
+
+    async function getMessage(path) {
+      const res = await fetch(`${API}${path}`);
+      const json = await res.json();
+      return json.message || "";
+    }
+
+    function row(label, value) {
+      return `<div class="row"><span>${label}</span><b>${value ?? "—"}</b></div>`;
+    }
+
+    function statusClass(text) {
+      if (String(text).includes("stale") && !String(text).includes("slightly")) return "stale";
+      if (String(text).includes("slightly")) return "slight";
+      return "fresh";
+    }
+
+    async function loadDashboard() {
+      document.getElementById("topStatus").textContent = "Refreshing…";
+
+      const [freshness, snapshot, daily, weekly, body, labs, workouts] = await Promise.all([
+        getMessage("/freshness-watchdog-message"),
+        getMessage(`/snapshot-message?date=${today}`),
+        getMessage(`/daily-calorie-balance-message?date=${today}`),
+        getMessage(`/weekly-calorie-balance-message?start_date=${weekStart}&end_date=${today}`),
+        getMessage("/body-metrics-trend-message"),
+        getMessage("/lab-priority-message"),
+        getMessage("/latest-workouts-message"),
+      ]);
+
+      const f = linesToMap(freshness);
+      const staleCount = freshness.split("\n").filter(line => line.includes("status: stale")).length;
+      const slightCount = freshness.split("\n").filter(line => line.includes("status: slightly_stale")).length;
+      const headline = staleCount ? "Stale signals" : slightCount ? "Mostly fresh" : "Fresh";
+      document.getElementById("freshnessHeadline").textContent = headline;
+      document.getElementById("topStatus").textContent = headline;
+
+      document.getElementById("freshnessChips").innerHTML = freshness.split("\n")
+        .filter(line => line.includes("status:"))
+        .map(line => `<span class="chip ${statusClass(line)}">${line}</span>`)
+        .join("");
+
+      const s = linesToMap(snapshot);
+      document.getElementById("todayReadiness").textContent = s.vitalis_readiness_score ? `${s.vitalis_readiness_score} readiness` : "—";
+      document.getElementById("todayNote").textContent = s.vitalis_coach_note || "No coach note";
+      document.getElementById("todayRows").innerHTML =
+        row("Date", s.snapshot_date) +
+        row("Steps", s.steps) +
+        row("Workout min", s.workout_total_duration_minutes) +
+        row("Workout kcal", s.workout_total_calories) +
+        row("Recovery", s.vitalis_recovery_score);
+
+      const d = linesToMap(daily);
+      document.getElementById("dailyBalance").textContent = d.estimated_balance_intake_minus_burn ? `${d.estimated_balance_intake_minus_burn} kcal` : "—";
+      document.getElementById("dailyConfidence").textContent = `Confidence: ${d.confidence || "unknown"}`;
+      document.getElementById("dailyRows").innerHTML =
+        row("Intake", d.intake_calories) +
+        row("Burn", d.burn_calories) +
+        row("Protein", `${d.protein_g || "—"} g`) +
+        row("Method", d.burn_method);
+
+      const w = linesToMap(weekly);
+      document.getElementById("weeklyBalance").textContent = w.average_balance_intake_minus_burn ? `${w.average_balance_intake_minus_burn} kcal/day` : "—";
+      document.getElementById("weeklyConfidence").textContent = `Confidence: ${w.confidence || "unknown"}`;
+      document.getElementById("weeklyRows").innerHTML =
+        row("Days food", w.days_with_food) +
+        row("Days burn", w.days_with_burn) +
+        row("Avg intake", w.average_intake_calories) +
+        row("Avg burn", w.average_burn_calories);
+
+      const b = linesToMap(body);
+      document.getElementById("bodyWeight").textContent = b.latest_weight_kg ? `${b.latest_weight_kg} kg` : "—";
+      document.getElementById("bodyBp").textContent = `Latest BP: ${b.latest_bp || "—"}`;
+      document.getElementById("bodyRows").innerHTML =
+        row("Weight change", `${b.weight_change_kg || "—"} kg`) +
+        row("Avg systolic", b.average_systolic_bp) +
+        row("Avg diastolic", b.average_diastolic_bp) +
+        row("Confidence", b.confidence);
+
+      const labLines = labs.split("\n").filter(line => line.startsWith("date:")).slice(0, 8);
+      document.getElementById("labHeadline").textContent = `${labLines.length} active flags`;
+      document.getElementById("labRows").textContent = labLines.join("\n") || labs;
+
+      document.getElementById("workoutRows").textContent = workouts;
+    }
+
+    loadDashboard().catch(error => {
+      document.getElementById("topStatus").textContent = "Error";
+      document.body.insertAdjacentHTML("beforeend", `<pre style="padding:20px;color:#e85d75">${error.message}</pre>`);
+    });
+  </script>
+</body>
+</html>
