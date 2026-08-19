@@ -460,6 +460,57 @@ async function getBodyMetricsHistoryMessage() {
   ]);
 }
 
+async function getBodyMetricsTrendMessage() {
+  const rows = await supabaseGet(
+    "body_metrics?select=metric_date,weight_kg,systolic_bp,diastolic_bp,source&order=metric_date.asc"
+  );
+
+  if (!rows || rows.length === 0) {
+    return messageResponse(["body_metrics_trend", "No body metrics found."]);
+  }
+
+  const weightRows = rows.filter((row: any) => row.weight_kg !== null && row.weight_kg !== undefined);
+  const bpRows = rows.filter((row: any) => row.systolic_bp !== null && row.diastolic_bp !== null);
+
+  const firstWeight = weightRows[0] ?? null;
+  const latestWeight = weightRows[weightRows.length - 1] ?? null;
+  const latestBodyMetric = rows[rows.length - 1];
+
+  const weightChange = firstWeight && latestWeight
+    ? Number(latestWeight.weight_kg) - Number(firstWeight.weight_kg)
+    : null;
+
+  const avgSystolic = bpRows.length > 0
+    ? bpRows.reduce((sum: number, row: any) => sum + Number(row.systolic_bp), 0) / bpRows.length
+    : null;
+
+  const avgDiastolic = bpRows.length > 0
+    ? bpRows.reduce((sum: number, row: any) => sum + Number(row.diastolic_bp), 0) / bpRows.length
+    : null;
+
+  const confidence = rows.length >= 4
+    ? "medium"
+    : rows.length >= 2
+      ? "low"
+      : "very_low";
+
+  return messageResponse([
+    "body_metrics_trend",
+    `rows: ${rows.length}`,
+    `first_weight_date: ${firstWeight?.metric_date ?? "Unavailable"}`,
+    `first_weight_kg: ${round(firstWeight?.weight_kg)}`,
+    `latest_weight_date: ${latestWeight?.metric_date ?? "Unavailable"}`,
+    `latest_weight_kg: ${round(latestWeight?.weight_kg)}`,
+    `weight_change_kg: ${round(weightChange)}`,
+    `latest_bp_date: ${latestBodyMetric?.metric_date ?? "Unavailable"}`,
+    `latest_bp: ${latestBodyMetric?.systolic_bp ?? "Unavailable"}/${latestBodyMetric?.diastolic_bp ?? "Unavailable"}`,
+    `average_systolic_bp: ${round(avgSystolic)}`,
+    `average_diastolic_bp: ${round(avgDiastolic)}`,
+    `confidence: ${confidence}`,
+    "note: Use weekly body metrics trends to calibrate calorie targets; single readings can be noisy.",
+  ]);
+}
+
 async function getVo2HistoryMessage() {
   const rows = await supabaseGet(
     "health_snapshots?select=snapshot_date,vo2_max&vo2_max=not.is.null&order=snapshot_date.asc"
@@ -1609,6 +1660,8 @@ if (request.method === "POST" && path === "upload-calorie-snapshots") {
       return messageResponse(compareMessageLines(result.summaryA, result.summaryB));
     }
 
+if (path === "body-metrics-trend-message") return await getBodyMetricsTrendMessage();
+
 if (path === "body-metrics-history-message") return await getBodyMetricsHistoryMessage();
 	
 	if (path === "vo2-history-message") {
@@ -1952,6 +2005,7 @@ if (path === "sleep-hr-history-message") {
         "/last-30-training-text",
         "/body-metrics-history-message",
         "/add-body-metric",
+		"/body-metrics-trend-message",
         "/food-intake-history-message",
 		"/food-daily-summary-message?date=YYYY-MM-DD",
         "/add-food-intake",

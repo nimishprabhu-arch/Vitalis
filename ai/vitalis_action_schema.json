@@ -395,7 +395,20 @@
     }
   }
 },
-	
+
+    "/body-metrics-trend-message": {
+      "get": {
+        "operationId": "getBodyMetricsTrendMessage",
+        "summary": "Get weight and blood pressure trend summary from manual body metrics.",
+        "responses": {
+          "200": {
+            "description": "Body metrics trend summary."
+          }
+        }
+      }
+    },
+
+
     "/last-30-training-message": {
       "get": {
         "operationId": "getLast30TrainingMessage",
