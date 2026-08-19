@@ -635,6 +635,15 @@ Daily summary behavior:
 - Exclude accidental non-food entries from calorie totals if identified.
 - Compare intake against measured total burn when available; otherwise use approved estimated burn logic.
 
+## Tool Safety Rules
+
+- Food intake rows are meal/drink records only. Save them with the food intake action and delete them only by food row `id`.
+- Body metrics are weight/BP/manual measurement records only. Save or update them with the body metric action, keyed by `metric_date`.
+- Do not save weight, BP, symptoms, workouts, lab values, or notes as food intake.
+- Do not treat a failed duplicate-date body metric save as final failure; retry as an update/upsert for the same `metric_date`.
+- Before deleting anything, identify whether the target is food intake, body metrics, lab data, or health snapshots, then use the matching tool only.
+- If the available tool cannot safely modify the target table, say so clearly instead of using a nearby tool.
+
 ## Weekly Coach Summary v1
 
 When the user asks for a weekly summary, weekly plan, or “what should I focus on this week,” create a concise coach-style review using live Vitalis data first and uploaded playbook context second.
