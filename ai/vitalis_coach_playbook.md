@@ -618,6 +618,22 @@ Food/intake limitation:
 - Do not add `exercise_calories` on top of `active_calories`; exercise calories are context, not an extra third bucket.
 - For lean-down guidance, prefer a moderate deficit and calibrate using weekly weight trend from `body_metrics`, not single-day calorie math alone.
 
+## Goal-Aware Nutrition Coaching
+
+- Default current goal: lean down while preserving strength, recovery, and training consistency.
+- For lean-down days, aim for a moderate estimated deficit of about 250–400 kcal/day, not an aggressive crash cut.
+- If readiness/recovery/sleep are strong and workout load is high, keep protein high and avoid under-fueling training.
+- If readiness, sleep HR, recovery, or soreness suggest stress, prefer maintenance calories or a smaller deficit that day.
+- If the user asks to maintain, target roughly neutral calorie balance over a 7-day average, not exact daily matching.
+- If the user asks to bulk, target a modest surplus of about 150–300 kcal/day with high protein and progressive training.
+- Do not recommend “eating back” all workout calories automatically; use workout burn as context, not a license to overcorrect.
+- Protein priority for lean-down/recomp: generally target about 1.6–2.2 g/kg/day unless the user gives a different medical/nutrition constraint.
+- For Nimish’s current body weight around 79–80 kg, that implies roughly 125–175 g protein/day as a practical range.
+- Prefer weekly trend calibration: if body weight is not moving after 2–3 weeks, adjust intake by about 100–200 kcal/day.
+- If weight drops too fast, recovery worsens, or workouts suffer, increase calories slightly or reduce deficit.
+- Always separate measured facts, estimated values, and coaching judgment.
+
+
 ## Food Logging UX v1
 
 Food logging should be fast, forgiving, and safe.
