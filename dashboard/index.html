@@ -231,7 +231,10 @@
         <h1>Vitalis Dashboard</h1>
         <div class="subtitle" id="dateLabel">Loading today’s command center…</div>
       </div>
-      <div class="status" id="topStatus">Loading…</div>
+      <div style="display:flex; gap:10px; align-items:center;">
+  <button id="refreshButton" type="button">Refresh</button>
+  <div class="status" id="topStatus">Loading…</div>
+</div>
     </header>
 
     <main class="grid">
@@ -401,6 +404,7 @@
 
     async function loadDashboard() {
       document.getElementById("topStatus").textContent = "Refreshing…";
+	document.getElementById("refreshButton").disabled = true;
 
       const [freshness, snapshot, daily, foodHistory, weekly, body, labs, workouts] = await Promise.all([
         getMessage("/freshness-watchdog-message"),
@@ -534,7 +538,12 @@
       }).join("") || "<div class='muted'>No recent workouts found.</div>";
 
       document.getElementById("topStatus").textContent = `Updated · ${new Date().toLocaleTimeString()}`;
+document.getElementById("refreshButton").disabled = false;
     }
+	
+	document.getElementById("refreshButton").addEventListener("click", () => {
+  loadDashboard();
+});
 
     loadDashboard().catch(error => {
       document.getElementById("topStatus").textContent = "Dashboard error";
