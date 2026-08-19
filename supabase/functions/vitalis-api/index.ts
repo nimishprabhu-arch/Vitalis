@@ -442,6 +442,92 @@ async function getDailyCalorieBalanceMessage(date: string) {
   ]);
 }
 
+async function getWeeklyCalorieBalanceMessage(startDate: string, endDate: string) {
+  const foodRows = await supabaseGet(
+    `food_intake?select=intake_date,estimated_calories,protein_g,carbs_g,fat_g,fiber_g&intake_date=gte.${encodeURIComponent(startDate)}&intake_date=lte.${encodeURIComponent(endDate)}&order=intake_date.asc`
+  );
+
+  const snapshotRows = await supabaseGet(
+    `${TABLE}?select=snapshot_date,total_burned_calories,rest_calories,active_calories,workout_total_calories,source&snapshot_date=gte.${encodeURIComponent(startDate)}&snapshot_date=lte.${encodeURIComponent(endDate)}&order=snapshot_date.asc`
+  );
+
+  const foodByDate = new Map<string, any[]>();
+  for (const row of foodRows) {
+    const date = row.intake_date;
+    foodByDate.set(date, [...(foodByDate.get(date) ?? []), row]);
+  }
+
+  const snapshotByDate = new Map<string, any>();
+  for (const row of snapshotRows) {
+    snapshotByDate.set(row.snapshot_date, row);
+  }
+
+  const allDates = Array.from(new Set([
+    ...foodRows.map((row: any) => row.intake_date),
+    ...snapshotRows.map((row: any) => row.snapshot_date),
+  ])).sort();
+
+  let daysWithFood = 0;
+  let daysWithBurn = 0;
+  let totalIntake = 0;
+  let totalBurn = 0;
+  let totalBalance = 0;
+  let balanceDays = 0;
+
+  for (const date of allDates) {
+    const foods = foodByDate.get(date) ?? [];
+    const snapshot = snapshotByDate.get(date) ?? null;
+
+    const intake = foods.reduce((sum: number, row: any) => sum + (Number(row.estimated_calories) || 0), 0);
+    let burn = null;
+
+    if (snapshot?.total_burned_calories != null) {
+      burn = Number(snapshot.total_burned_calories);
+    } else if (snapshot?.rest_calories != null && snapshot?.active_calories != null) {
+      burn = Number(snapshot.rest_calories) + Number(snapshot.active_calories);
+    } else if (snapshot?.workout_total_calories != null) {
+      burn = 1643 + Number(snapshot.workout_total_calories);
+    }
+
+    if (foods.length > 0) {
+      daysWithFood += 1;
+      totalIntake += intake;
+    }
+
+    if (burn != null) {
+      daysWithBurn += 1;
+      totalBurn += burn;
+    }
+
+    if (foods.length > 0 && burn != null) {
+      totalBalance += intake - burn;
+      balanceDays += 1;
+    }
+  }
+
+  const confidence = balanceDays >= 5
+    ? "medium"
+    : balanceDays >= 2
+      ? "low"
+      : "very_low";
+
+  return messageResponse([
+    "weekly_calorie_balance",
+    `range: ${startDate}..${endDate}`,
+    `days_seen: ${allDates.length}`,
+    `days_with_food: ${daysWithFood}`,
+    `days_with_burn: ${daysWithBurn}`,
+    `balance_days: ${balanceDays}`,
+    `total_intake_calories: ${round(totalIntake)}`,
+    `average_intake_calories: ${round(daysWithFood > 0 ? totalIntake / daysWithFood : null)}`,
+    `total_burn_calories: ${round(totalBurn)}`,
+    `average_burn_calories: ${round(daysWithBurn > 0 ? totalBurn / daysWithBurn : null)}`,
+    `average_balance_intake_minus_burn: ${round(balanceDays > 0 ? totalBalance / balanceDays : null)}`,
+    `confidence: ${confidence}`,
+    "note: Weekly balance uses only days with logged food and available burn. Negative balance means estimated deficit.",
+  ]);
+}
+
 async function getBodyMetricsHistoryMessage() {
   const rows = await supabaseGet(
     "body_metrics?select=metric_date,weight_kg,systolic_bp,diastolic_bp,notes,source&order=metric_date.asc"
@@ -1696,6 +1782,20 @@ if (path === "daily-calorie-balance-message") {
   return await getDailyCalorieBalanceMessage(date);
 }
 
+if (path === "weekly-calorie-balance-message") {
+  const url = new URL(request.url);
+  const startDate = url.searchParams.get("start_date");
+  const endDate = url.searchParams.get("end_date");
+
+  if (!startDate || !endDate) {
+    return messageResponse([
+      "error: missing start_date or end_date parameter",
+      "example: /weekly-calorie-balance-message?start_date=2026-08-13&end_date=2026-08-19",
+    ]);
+  }
+
+  return await getWeeklyCalorieBalanceMessage(startDate, endDate);
+}
 
 if (path === "sync-health-status-message") return await getSyncHealthStatusMessage();
 
@@ -2016,6 +2116,7 @@ if (path === "sleep-hr-history-message") {
         "/latest-workouts-message",
         "/workouts-by-period-message?period=YYYY-MM-DD",
         "/workout-history-message",
+		"/weekly-calorie-balance-message?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD",
         "/calorie-history-message",
         "/lab-marker-history-message?marker=LDL",
         "/upload-snapshot",

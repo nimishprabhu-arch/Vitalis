@@ -324,6 +324,38 @@
         }
       }
     },
+	
+    "/weekly-calorie-balance-message": {
+      "get": {
+        "operationId": "getWeeklyCalorieBalanceMessage",
+        "summary": "Get weekly estimated calorie intake, burn, and balance over a date range.",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Start date in YYYY-MM-DD format."
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "End date in YYYY-MM-DD format."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Weekly calorie balance summary."
+          }
+        }
+      }
+    },
 
     "/daily-calorie-balance-message": {
       "get": {
