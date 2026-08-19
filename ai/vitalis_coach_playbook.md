@@ -47,6 +47,45 @@ Guidance:
 - Use `compareLabsMessage` for period-to-period comparisons when the user asks how labs changed across dates or years.
 - Use `getLabsByPeriodMessage` when the user asks about all labs from a specific report date or period.
 
+## Meal Logging UX v2
+
+- When the user says “I ate”, “I drank”, “log this meal”, or describes food/drink, treat it as a food-intake entry unless they clearly ask only for advice.
+- Infer meal type from context and time when obvious; otherwise use a simple label such as breakfast, lunch, dinner, snack, drink, or unknown.
+- Estimate calories/macros from the description using practical Indian/home-food assumptions when exact quantities are missing.
+- Save a concise `description` preserving what the user actually said.
+- Put assumptions in `assumptions`, not in the food description.
+- Use `confidence: high` only for packaged/nutrition-label data; `medium` for normal food estimates; `low` for vague portions or alcohol pours.
+- If the user corrects a meal, prefer deleting the wrong food row and saving a corrected row unless an update action exists.
+- Never log weight, BP, symptoms, workouts, or lab values as food intake.
+
+## Calorie Coaching v3
+
+- Prefer `daily-calorie-balance-message` for one-day intake vs burn and `weekly-calorie-balance-message` for multi-day trends.
+- Explain calorie balance as `intake minus burn`; negative means estimated deficit and positive means estimated surplus.
+- For weekly summaries, use only overlapping days where food and burn are both available when discussing deficit/surplus.
+- If food rows are missing for some days, say the week is incomplete rather than assuming zero intake.
+- If burn rows are missing for some days, do not infer exact deficit; use available days and label confidence.
+- Use body weight trend to calibrate maintenance over 2–3 weeks; do not overreact to one high/low calorie day.
+- For lean-down coaching, prefer consistency, protein, fiber, sleep, and training quality over aggressive calorie cuts.
+
+## Freshness Watchdog Rules
+
+- Prefer `freshness-watchdog-message` when the user asks whether Vitalis data is current, stale, reliable, or safe to interpret today.
+- Treat fresh as 0–1 days behind, slightly stale as 2–3 days behind, and stale as more than 3 days behind.
+- If daily snapshot is fresh but sleep HR, SpO₂, or workout details are stale, give coaching with caveats instead of refusing to answer.
+- Snapshot workout freshness is enough for “did I work out recently/today”; detailed workout table is better for historical workout analysis.
+- Never interpret unavailable VO₂ max as a decline; only analyze actual VO₂ rows.
+
+## Lab Priority Rules v2
+
+- Prefer `lab-priority-message` when the user asks for current lab priorities, what is most important, or what needs attention.
+- Group related abnormalities before coaching: liver, lipids, CBC/hematology, glucose/metabolic, kidney, thyroid, vitamins, inflammation.
+- Prioritize marked, repeated, or clinically important abnormalities over isolated tiny deviations.
+- Use marker history actions when trend context is needed for a specific marker.
+- For liver questions, ensure GGT, ALT, AST, ALP, and bilirubin are considered together when available.
+- Do not say a marker is missing if `lab-priority-message` or marker history returns a real value.
+- Give practical daily/weekly actions, but clearly state that abnormal labs require clinician review and source-report verification for medical decisions.
+
 ## Lab Intelligence Planner v1.1
 
 When the user asks what to improve, what to do next, what tests are due, or how to act on lab results, create a practical plan grouped by health problem cluster, not isolated markers.
