@@ -276,28 +276,7 @@ def main():
     upsert(SNAPSHOT_TABLE, snapshot_rows, "snapshot_date")
     upsert(WORKOUT_TABLE, workout_rows, "workout_id")
 
-        latest_checks = [
-            ("heart_rate_record_series_table", "epoch_millis"),
-            ("exercise_session_record_table", "end_time"),
-            ("oxygen_saturation_record_table", "time"),
-            ("total_calories_burned_record_table", "end_time"),
-            ("sleep_session_record_table", "end_time"),
-        ]
 
-        for table_name, column_name in latest_checks:
-            try:
-                latest_value = connection.execute(
-                    f"select max({column_name}) from {table_name}"
-                ).fetchone()[0]
-
-                if latest_value:
-                    print(f"{table_name}: {datetime.fromtimestamp(latest_value / 1000).isoformat()}")
-                else:
-                    print(f"{table_name}: empty")
-            except Exception as error:
-                print(f"{table_name}: error: {error}")
-
-        print("Health Connect direct Supabase sync complete.")
 
 
 if __name__ == "__main__":
