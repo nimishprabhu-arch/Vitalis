@@ -5,9 +5,8 @@ import urllib.error
 import urllib.request
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from datetime import datetime
 
-print("VITALIS_SYNC_VERSION: freshness-logger-v2")
+print("VITALIS_SYNC_VERSION: freshness-logger-v3")
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = Path(
@@ -82,6 +81,33 @@ def table_exists(connection, table_name):
     )
 
 
+def log_export_freshness(connection):
+    latest_checks = [
+        ("heart_rate_record_series_table", "epoch_millis"),
+        ("exercise_session_record_table", "end_time"),
+        ("oxygen_saturation_record_table", "time"),
+        ("total_calories_burned_record_table", "end_time"),
+        ("sleep_session_record_table", "end_time"),
+    ]
+
+    for table_name, column_name in latest_checks:
+        try:
+            if not table_exists(connection, table_name):
+                print(f"{table_name}: missing")
+                continue
+
+            latest_value = connection.execute(
+                f"select max({column_name}) from {table_name}"
+            ).fetchone()[0]
+
+            if latest_value:
+                print(f"{table_name}: {datetime.fromtimestamp(latest_value / 1000).isoformat()}")
+            else:
+                print(f"{table_name}: empty")
+        except Exception as error:
+            print(f"{table_name}: error: {error}")
+
+
 def upsert(table, rows, conflict_column, batch_size=250):
     if not rows:
         print(f"No rows to upload for {table}.")
@@ -124,9 +150,7 @@ def read_snapshot_metric_rows(connection):
 
     def row_for(snapshot_date):
         if snapshot_date not in rows_by_date:
-            rows_by_date[snapshot_date] = {
-                column: None for column in SNAPSHOT_COLUMNS
-            }
+            rows_by_date[snapshot_date] = {column: None for column in SNAPSHOT_COLUMNS}
             rows_by_date[snapshot_date]["snapshot_date"] = snapshot_date
             rows_by_date[snapshot_date]["source"] = "health_connect_cloud_sync"
 
@@ -267,6 +291,7 @@ def main():
         raise FileNotFoundError(f"Health Connect DB not found: {DB_PATH}")
 
     with sqlite3.connect(DB_PATH) as connection:
+        log_export_freshness(connection)
         snapshot_rows = read_snapshot_metric_rows(connection)
         workout_rows = read_workout_rows(connection)
 
@@ -276,7 +301,7 @@ def main():
     upsert(SNAPSHOT_TABLE, snapshot_rows, "snapshot_date")
     upsert(WORKOUT_TABLE, workout_rows, "workout_id")
 
-
+    print("Health Connect direct Supabase sync complete.")
 
 
 if __name__ == "__main__":
