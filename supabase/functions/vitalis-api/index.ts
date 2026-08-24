@@ -94,6 +94,30 @@ async function supabaseDeleteFoodIntake(id: string) {
   return responseText ? JSON.parse(responseText) : [];
 }
 
+async function supabaseUpdateFoodIntake(id: string, row: Record<string, unknown>) {
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/food_intake?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(row),
+    }
+  );
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Supabase ${response.status}: ${responseText}`);
+  }
+
+  return JSON.parse(responseText);
+}
+
 async function supabaseInsertBodyMetric(row: Record<string, unknown>) {
   const response = await fetch(`${SUPABASE_URL}/rest/v1/body_metrics?on_conflict=metric_date`, {
     method: "POST",
@@ -1778,6 +1802,30 @@ Deno.serve(async (request) => {
   });
 }
 
+if (request.method === "POST" && path === "update-food-intake") {
+  const payload = await request.json();
+  const id = textOrNull(pick(payload, "id", "id"));
+
+  if (!id) {
+    return jsonResponse(
+      {
+        status: "error",
+        message: "Missing required field: id",
+      },
+      400
+    );
+  }
+
+  const row = normalizeFoodIntake(payload);
+  const rows = await supabaseUpdateFoodIntake(id, row);
+
+  return jsonResponse({
+    status: "ok",
+    message: "Food intake updated.",
+    rows,
+  });
+}
+
     if (request.method === "POST" && path === "upload-snapshot") {
       const payload = await request.json();
       const snapshot = normalizeSnapshot(payload);
@@ -2262,6 +2310,7 @@ if (path === "sleep-hr-history-message") {
 		"/food-daily-summary-message?date=YYYY-MM-DD",
         "/add-food-intake",
         "/delete-food-intake",
+		"/update-food-intake",
         "/vo2-history-message",
         "/sleep-hr-history-message",
         "/daily-hr-history-message",
