@@ -561,7 +561,8 @@
       document.getElementById("topStatus").textContent = "Refreshing…";
       document.getElementById("refreshButton").disabled = true;
 
-      const [freshness, snapshot, daily, foodHistory, weekly, body, labs, workouts] = await Promise.all([
+      const [freshRouter, freshness, snapshot, daily, foodHistory, weekly, body, labs, workouts] = await Promise.all([
+		safeMessage("/fresh-vitalis-summary-message"),
         safeMessage("/freshness-watchdog-message"),
         safeMessage(`/snapshot-message?date=${today}`),
         safeMessage(`/daily-calorie-balance-message?date=${today}`),
@@ -571,8 +572,10 @@
         safeMessage("/lab-priority-message"),
         safeMessage("/latest-workouts-message"),
       ]);
-
-      const s = parseMessage(snapshot);
+	
+      const r = parseMessage(freshRouter);
+	  const s = parseMessage(snapshot);
+	  const r = parseMessage(freshRouter);
       const d = parseMessage(daily);
       const w = parseMessage(weekly);
       const b = parseMessage(body);
@@ -607,8 +610,17 @@ const heroWorkoutCalories = Number.isFinite(snapshotWorkoutCalories)
     ? todayWorkoutCalories
     : null;
 
+const routerWorkoutBurn = Number(r.best_workout_burn_calories);
+const snapshotWorkoutBurn = Number(s.workout_total_calories);
+
+const bestWorkoutBurn = Number.isFinite(routerWorkoutBurn)
+  ? routerWorkoutBurn
+  : Number.isFinite(snapshotWorkoutBurn)
+    ? snapshotWorkoutBurn
+    : null;
+
 document.getElementById("heroWorkoutCalories").textContent =
-  heroWorkoutCalories !== null ? `${heroWorkoutCalories.toFixed(0)} kcal` : "—";
+  bestWorkoutBurn !== null ? `${bestWorkoutBurn.toFixed(0)} kcal` : "—";
 
       document.getElementById("dailyBalance").textContent = balanceText(d.estimated_balance_intake_minus_burn);
       document.getElementById("dailyConfidence").textContent = `Confidence: ${valueOrDash(d.confidence)} · ${valueOrDash(d.burn_method)}`;
