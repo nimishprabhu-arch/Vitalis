@@ -75,6 +75,10 @@ Guidance:
 - If daily snapshot is fresh but sleep HR, SpO₂, or workout details are stale, give coaching with caveats instead of refusing to answer.
 - Snapshot workout freshness is enough for “did I work out recently/today”; detailed workout table is better for historical workout analysis.
 - Never interpret unavailable VO₂ max as a decline; only analyze actual VO₂ rows.
+- Before judging freshness, workout burn, or source reliability, call `getFreshVitalisSummaryMessage` when available.
+- Treat `fresh_vitalis_summary` as the source router: it identifies the freshest reliable source per metric.
+- For workout burn, use `best_workout_burn_calories` and `best_workout_burn_source` from the freshness router before falling back to snapshot-only fields.
+- Do not assume a missing snapshot workout burn means no workout burn if the freshness router or workout table has a fresher value.
 
 ## Lab Priority Rules v2
 

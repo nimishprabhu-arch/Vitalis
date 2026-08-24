@@ -720,7 +720,32 @@
     }
   }
 },
-	
+
+
+"/fresh-vitalis-summary-message": {
+  "get": {
+    "operationId": "getFreshVitalisSummaryMessage",
+    "summary": "Get freshest-source Vitalis summary",
+    "description": "Returns the freshest available Vitalis source per key metric, including snapshot freshness, HR, sleep HR, SpO2, workout freshness, best workout burn, and recommended source-selection rule.",
+    "responses": {
+      "200": {
+        "description": "Fresh Vitalis source summary message",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
 
 "/sync-health-status-message": {
   "get": {
