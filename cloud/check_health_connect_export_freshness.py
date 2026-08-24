@@ -20,6 +20,10 @@ CHECKS = [
 ]
 
 
+def log(message):
+    print(message, flush=True)
+
+
 def table_exists(connection, table_name):
     return (
         connection.execute(
@@ -41,19 +45,19 @@ def main():
     if not DB_PATH.exists():
         raise FileNotFoundError(f"Health Connect DB not found: {DB_PATH}")
 
-    print(f"Health Connect DB: {DB_PATH}")
+    log(f"Health Connect DB: {DB_PATH}")
 
     with sqlite3.connect(DB_PATH) as connection:
         for table_name, column_name in CHECKS:
             if not table_exists(connection, table_name):
-                print(f"{table_name}: missing")
+                log(f"{table_name}: missing")
                 continue
 
             latest_value = connection.execute(
                 f"select max({column_name}) from {table_name}"
             ).fetchone()[0]
 
-            print(f"{table_name}: {format_epoch_ms(latest_value)}")
+            log(f"{table_name}: {format_epoch_ms(latest_value)}")
 
 
 if __name__ == "__main__":
