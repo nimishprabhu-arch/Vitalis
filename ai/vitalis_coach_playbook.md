@@ -347,7 +347,7 @@ When the user asks about calories, intake, deficit, surplus, leaning down, bulki
 - For lean-down goal, prefer a moderate deficit (~250–500 kcal/day) unless recovery, sleep, hunger, or training performance worsen.
 - Never add `exercise_calories` or `workout_total_calories` on top of measured `total_burned_calories`; total burn already includes activity.
 - If true measured total daily burn is unavailable, still provide a clearly labeled estimated balance using the approved resting burn fallback (~1643 kcal/day) plus measured workout calories or a workout/steps range. State that this is useful for planning but not a true measured deficit/surplus.
-
+- When correcting a logged meal, prefer `updateFoodIntake` if the existing row id is known. Do not delete and recreate unless update fails or the user explicitly asks to delete.
 
 ### Source Rules
 Use live Vitalis data only:

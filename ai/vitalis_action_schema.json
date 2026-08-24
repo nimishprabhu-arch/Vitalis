@@ -247,6 +247,89 @@
   }
 },
 
+"/update-food-intake": {
+  "post": {
+    "operationId": "updateFoodIntake",
+    "summary": "Update an existing food intake entry",
+    "description": "Updates an existing food intake row by id. Use this to correct meal description, calories, macros, assumptions, confidence, meal type, or source without deleting and recreating the entry.",
+    "requestBody": {
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Food intake row id to update."
+              },
+              "intake_date": {
+                "type": "string",
+                "description": "Meal date in YYYY-MM-DD format."
+              },
+              "meal_type": {
+                "type": "string",
+                "description": "Meal label such as breakfast, lunch, dinner, snack, drink, or correction."
+              },
+              "description": {
+                "type": "string",
+                "description": "Plain-language meal description."
+              },
+              "estimated_calories": {
+                "type": "number"
+              },
+              "protein_g": {
+                "type": "number"
+              },
+              "carbs_g": {
+                "type": "number"
+              },
+              "fat_g": {
+                "type": "number"
+              },
+              "fiber_g": {
+                "type": "number"
+              },
+              "assumptions": {
+                "type": "string"
+              },
+              "confidence": {
+                "type": "string",
+                "enum": ["low", "medium", "high"]
+              },
+              "source": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "200": {
+        "description": "Food intake row updated",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": { "type": "string" },
+                "message": { "type": "string" },
+                "rows": {
+                  "type": "array",
+                  "items": { "type": "object" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
     "/delete-food-intake": {
       "post": {
         "operationId": "deleteFoodIntake",
