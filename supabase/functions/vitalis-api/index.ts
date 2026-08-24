@@ -657,6 +657,76 @@ async function getSyncHealthStatusMessage() {
   ]);
 }
 
+async function getFreshVitalisSummaryMessage() {
+  const snapshots = await supabaseGet(
+    `${TABLE}?select=snapshot_date,source,workout_session_count,workout_total_duration_minutes,workout_total_calories,total_burned_calories,daily_hr_average,sleep_average_heart_rate,spo2_average,vitalis_readiness_score,vitalis_recovery_score,vitalis_training_load_score&order=snapshot_date.desc&limit=30`
+  );
+
+  const workouts = await supabaseGet(
+    "workouts?select=workout_date,calories,duration_minutes,exercise_type_label&order=workout_date.desc&limit=20"
+  );
+
+  function latestSnapshotDateFor(field: string) {
+    const row = snapshots.find((item: any) => item[field] !== null && item[field] !== undefined);
+    return row?.snapshot_date ?? "Unavailable";
+  }
+
+  const latestSnapshot = snapshots[0] ?? null;
+
+  const latestWorkoutSnapshot = snapshots.find((item: any) =>
+    Number(item.workout_session_count ?? 0) > 0 ||
+    Number(item.workout_total_duration_minutes ?? 0) > 0 ||
+    Number(item.workout_total_calories ?? 0) > 0
+  );
+
+  const latestWorkoutDetail = workouts[0] ?? null;
+
+  const latestWorkoutSnapshotDate = latestWorkoutSnapshot?.snapshot_date ?? "Unavailable";
+  const latestWorkoutDetailDate = latestWorkoutDetail?.workout_date ?? "Unavailable";
+
+  const today = latestSnapshot?.snapshot_date ?? null;
+  const todayWorkoutRows = today
+    ? workouts.filter((row: any) => row.workout_date === today)
+    : [];
+
+  const todayWorkoutCalories = todayWorkoutRows
+    .map((row: any) => Number(row.calories))
+    .filter((value: number) => Number.isFinite(value))
+    .reduce((sum: number, value: number) => sum + value, 0);
+
+  const snapshotWorkoutCalories = Number(latestSnapshot?.workout_total_calories);
+  const bestWorkoutCalories = Number.isFinite(snapshotWorkoutCalories)
+    ? snapshotWorkoutCalories
+    : todayWorkoutCalories > 0
+      ? todayWorkoutCalories
+      : null;
+
+  const workoutBurnSource = Number.isFinite(snapshotWorkoutCalories)
+    ? "snapshot"
+    : todayWorkoutCalories > 0
+      ? "workouts_table"
+      : "unavailable";
+
+  return messageResponse([
+    "fresh_vitalis_summary",
+    `latest_snapshot_date: ${latestSnapshot?.snapshot_date ?? "Unavailable"}`,
+    `latest_snapshot_source: ${latestSnapshot?.source ?? "Unavailable"}`,
+    `latest_readiness_score: ${latestSnapshot?.vitalis_readiness_score ?? "Unavailable"}`,
+    `latest_recovery_score: ${latestSnapshot?.vitalis_recovery_score ?? "Unavailable"}`,
+    `latest_training_load_score: ${latestSnapshot?.vitalis_training_load_score ?? "Unavailable"}`,
+    `latest_daily_hr_date: ${latestSnapshotDateFor("daily_hr_average")}`,
+    `latest_sleep_hr_date: ${latestSnapshotDateFor("sleep_average_heart_rate")}`,
+    `latest_spo2_date: ${latestSnapshotDateFor("spo2_average")}`,
+    `latest_workout_snapshot_date: ${latestWorkoutSnapshotDate}`,
+    `latest_workout_detail_date: ${latestWorkoutDetailDate}`,
+    `best_workout_burn_calories: ${bestWorkoutCalories ?? "Unavailable"}`,
+    `best_workout_burn_source: ${workoutBurnSource}`,
+    "rule: use freshest reliable source per metric; workouts_table can override snapshot workout burn when snapshot burn is missing.",
+  ]);
+}
+
+
+
 function daysBehind(dateText: string | null | undefined) {
   if (!dateText || dateText === "Unavailable") return null;
 
@@ -1875,6 +1945,8 @@ if (path === "weekly-calorie-balance-message") {
 
 if (path === "sync-health-status-message") return await getSyncHealthStatusMessage();
 
+if (path === "fresh-vitalis-summary-message") return await getFreshVitalisSummaryMessage();
+
 if (path === "freshness-watchdog-message") return await getFreshnessWatchdogMessage();
 
 if (path === "latest-workouts-message") {
@@ -2177,6 +2249,7 @@ if (path === "sleep-hr-history-message") {
         "/compare-periods-message?period_a=YYYY-MM-DD&period_b=YYYY-MM-DD",
         "/snapshot-message?date=YYYY-MM-DD",
         "/sync-health-status-message",
+		"/fresh-vitalis-summary-message",
         "/latest-summary-message",
         "/daily-brief-message",
         "/last-30-training-message",
