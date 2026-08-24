@@ -7,6 +7,8 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from datetime import datetime
 
+print("VITALIS_SYNC_VERSION: freshness-logger-v2")
+
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = Path(
     os.environ.get(
