@@ -412,41 +412,55 @@ async function getFoodDailySummaryMessage(date: string) {
 }
 
 async function getDailyCalorieBalanceMessage(date: string) {
-  const foodRows = await supabaseGet(
-    `food_intake?select=estimated_calories,protein_g,carbs_g,fat_g,fiber_g,confidence&intake_date=eq.${encodeURIComponent(date)}`
+  const snapshots = await supabaseGet(
+    `${TABLE}?select=snapshot_date,total_burned_calories,rest_calories,workout_total_calories,source&snapshot_date=eq.${encodeURIComponent(date)}&limit=1`
   );
 
-  const snapshotRows = await supabaseGet(
-    `${TABLE}?select=snapshot_date,total_burned_calories,rest_calories,active_calories,workout_total_calories,source&snapshot_date=eq.${encodeURIComponent(date)}&limit=1`
+  const foods = await supabaseGet(
+    `food_intake?select=estimated_calories,protein_g,carbs_g,fat_g,fiber_g&intake_date=eq.${encodeURIComponent(date)}`
   );
 
-  const snapshot = snapshotRows?.[0] ?? null;
+  const snapshot = snapshots?.[0] ?? null;
+  const foodRows = foods ?? [];
 
-  const intakeCalories = foodRows.reduce((sum: number, row: any) => sum + (Number(row.estimated_calories) || 0), 0);
-  const protein = foodRows.reduce((sum: number, row: any) => sum + (Number(row.protein_g) || 0), 0);
-  const carbs = foodRows.reduce((sum: number, row: any) => sum + (Number(row.carbs_g) || 0), 0);
-  const fat = foodRows.reduce((sum: number, row: any) => sum + (Number(row.fat_g) || 0), 0);
-  const fiber = foodRows.reduce((sum: number, row: any) => sum + (Number(row.fiber_g) || 0), 0);
+  const intakeCalories = sum(foodRows, "estimated_calories");
+  const protein = sum(foodRows, "protein_g");
+  const carbs = sum(foodRows, "carbs_g");
+  const fat = sum(foodRows, "fat_g");
+  const fiber = sum(foodRows, "fiber_g");
+
+  const measuredTotalBurn = Number(snapshot?.total_burned_calories);
+  const restingBurn = Number(snapshot?.rest_calories);
+  const workoutBurn = Number(snapshot?.workout_total_calories);
+  const fallbackRestingBurn = 1643;
 
   let burnCalories = null;
   let burnMethod = "unavailable";
   let confidence = "low";
 
-  if (snapshot?.total_burned_calories != null) {
-    burnCalories = Number(snapshot.total_burned_calories);
-    burnMethod = "measured_total_burned_calories";
-    confidence = foodRows.length > 0 ? "high" : "medium";
-  } else if (snapshot?.rest_calories != null && snapshot?.active_calories != null) {
-    burnCalories = Number(snapshot.rest_calories) + Number(snapshot.active_calories);
-    burnMethod = "measured_rest_plus_active_calories";
-    confidence = foodRows.length > 0 ? "high" : "medium";
-  } else if (snapshot?.workout_total_calories != null) {
-    burnCalories = 1643 + Number(snapshot.workout_total_calories);
+  if (hasMeasuredTotalBurn) {
+    burnCalories = measuredTotalBurn;
+    burnMethod = "measured_total_burn";
+    confidence = "high";
+  } else if (hasRestingBurn && hasWorkoutBurn) {
+    burnCalories = restingBurn + workoutBurn;
+    burnMethod = "measured_resting_burn_plus_measured_workout_calories";
+    confidence = "medium";
+  } else if (Number.isFinite(workoutBurn)) {
+    burnCalories = fallbackRestingBurn + workoutBurn;
     burnMethod = "estimated_resting_burn_plus_measured_workout_calories";
-    confidence = foodRows.length > 0 ? "medium" : "low";
+    confidence = "medium";
   }
 
-  const estimatedBalance = burnCalories != null ? intakeCalories - burnCalories : null;
+  const hasFood = foodRows.length > 0;
+  const hasBurn = burnCalories !== null;
+  const balance = hasFood && hasBurn ? intakeCalories - burnCalories : null;
+
+  const note = !hasFood
+    ? "No food logged yet; do not interpret missing intake as a calorie deficit."
+    : !hasBurn
+      ? "Food is logged, but burn is unavailable; do not calculate deficit/surplus."
+      : "Negative balance means estimated deficit. Positive balance means estimated surplus. Fallback resting burn uses 1643 kcal/day.";
 
   return messageResponse([
     "daily_calorie_balance",
@@ -459,96 +473,138 @@ async function getDailyCalorieBalanceMessage(date: string) {
     `fiber_g: ${round(fiber)}`,
     `burn_calories: ${round(burnCalories)}`,
     `burn_method: ${burnMethod}`,
-    `estimated_balance_intake_minus_burn: ${round(estimatedBalance)}`,
+    `estimated_balance_intake_minus_burn: ${round(balance)}`,
     `confidence: ${confidence}`,
     `snapshot_source: ${snapshot?.source ?? "Unavailable"}`,
-    "note: Negative balance means estimated deficit. Positive balance means estimated surplus. Fallback resting burn uses 1643 kcal/day.",
+    `note: ${note}`,
   ]);
 }
 
 async function getWeeklyCalorieBalanceMessage(startDate: string, endDate: string) {
-  const foodRows = await supabaseGet(
-    `food_intake?select=intake_date,estimated_calories,protein_g,carbs_g,fat_g,fiber_g&intake_date=gte.${encodeURIComponent(startDate)}&intake_date=lte.${encodeURIComponent(endDate)}&order=intake_date.asc`
+  const snapshots = await supabaseGet(
+    `${TABLE}?select=snapshot_date,total_burned_calories,rest_calories,workout_total_calories,source&snapshot_date=gte.${encodeURIComponent(startDate)}&snapshot_date=lte.${encodeURIComponent(endDate)}&order=snapshot_date.asc`
   );
 
-  const snapshotRows = await supabaseGet(
-    `${TABLE}?select=snapshot_date,total_burned_calories,rest_calories,active_calories,workout_total_calories,source&snapshot_date=gte.${encodeURIComponent(startDate)}&snapshot_date=lte.${encodeURIComponent(endDate)}&order=snapshot_date.asc`
+  const foods = await supabaseGet(
+    `food_intake?select=intake_date,estimated_calories,protein_g,carbs_g,fat_g,fiber_g&intake_date=gte.${encodeURIComponent(startDate)}&intake_date=lte.${encodeURIComponent(endDate)}`
   );
 
-  const foodByDate = new Map<string, any[]>();
-  for (const row of foodRows) {
+  const snapshotsByDate = new Map((snapshots ?? []).map((row: any) => [row.snapshot_date, row]));
+  const foodsByDate = new Map();
+
+  for (const row of foods ?? []) {
     const date = row.intake_date;
-    foodByDate.set(date, [...(foodByDate.get(date) ?? []), row]);
+    if (!foodsByDate.has(date)) {
+      foodsByDate.set(date, {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        fiber: 0,
+        rows: 0,
+      });
+    }
+
+    const day = foodsByDate.get(date);
+    day.calories += Number(row.estimated_calories ?? 0);
+    day.protein += Number(row.protein_g ?? 0);
+    day.carbs += Number(row.carbs_g ?? 0);
+    day.fat += Number(row.fat_g ?? 0);
+    day.fiber += Number(row.fiber_g ?? 0);
+    day.rows += 1;
   }
 
-  const snapshotByDate = new Map<string, any>();
-  for (const row of snapshotRows) {
-    snapshotByDate.set(row.snapshot_date, row);
+function burnFor(snapshot: any) {
+  if (!snapshot) return { calories: null, method: "unavailable", confidence: "low" };
+
+  function realNumber(value: unknown) {
+    if (value === null || value === undefined || value === "") return null;
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : null;
   }
 
-  const allDates = Array.from(new Set([
-    ...foodRows.map((row: any) => row.intake_date),
-    ...snapshotRows.map((row: any) => row.snapshot_date),
-  ])).sort();
+  const measuredTotalBurn = realNumber(snapshot.total_burned_calories);
+  const restingBurn = realNumber(snapshot.rest_calories);
+  const workoutBurn = realNumber(snapshot.workout_total_calories);
+  const fallbackRestingBurn = 1643;
 
-  let daysWithFood = 0;
-  let daysWithBurn = 0;
-  let totalIntake = 0;
-  let totalBurn = 0;
-  let totalBalance = 0;
-  let balanceDays = 0;
-
-  for (const date of allDates) {
-    const foods = foodByDate.get(date) ?? [];
-    const snapshot = snapshotByDate.get(date) ?? null;
-
-    const intake = foods.reduce((sum: number, row: any) => sum + (Number(row.estimated_calories) || 0), 0);
-    let burn = null;
-
-    if (snapshot?.total_burned_calories != null) {
-      burn = Number(snapshot.total_burned_calories);
-    } else if (snapshot?.rest_calories != null && snapshot?.active_calories != null) {
-      burn = Number(snapshot.rest_calories) + Number(snapshot.active_calories);
-    } else if (snapshot?.workout_total_calories != null) {
-      burn = 1643 + Number(snapshot.workout_total_calories);
-    }
-
-    if (foods.length > 0) {
-      daysWithFood += 1;
-      totalIntake += intake;
-    }
-
-    if (burn != null) {
-      daysWithBurn += 1;
-      totalBurn += burn;
-    }
-
-    if (foods.length > 0 && burn != null) {
-      totalBalance += intake - burn;
-      balanceDays += 1;
-    }
+  if (measuredTotalBurn !== null) {
+    return { calories: measuredTotalBurn, method: "measured_total_burn", confidence: "high" };
   }
 
-  const confidence = balanceDays >= 5
+  if (restingBurn !== null && workoutBurn !== null) {
+    return {
+      calories: restingBurn + workoutBurn,
+      method: "measured_resting_burn_plus_measured_workout_calories",
+      confidence: "medium",
+    };
+  }
+
+  if (workoutBurn !== null) {
+    return {
+      calories: fallbackRestingBurn + workoutBurn,
+      method: "estimated_resting_burn_plus_measured_workout_calories",
+      confidence: "medium",
+    };
+  }
+
+  return { calories: null, method: "unavailable", confidence: "low" };
+}
+
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  const dayRows = [];
+
+  for (let cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+    const date = cursor.toISOString().slice(0, 10);
+    const food = foodsByDate.get(date) ?? null;
+    const burn = burnFor(snapshotsByDate.get(date));
+
+    dayRows.push({
+      date,
+      food_rows: food?.rows ?? 0,
+      intake_calories: food?.calories ?? null,
+      burn_calories: burn.calories,
+      balance: food && burn.calories !== null ? food.calories - burn.calories : null,
+      burn_method: burn.method,
+      burn_confidence: burn.confidence,
+    });
+  }
+
+  const balanceDays = dayRows.filter((row) => row.balance !== null);
+  const foodDays = dayRows.filter((row) => row.food_rows > 0);
+  const burnDays = dayRows.filter((row) => row.burn_calories !== null);
+
+  const totalIntake = foodDays.reduce((sum, row) => sum + Number(row.intake_calories ?? 0), 0);
+  const totalBurn = burnDays.reduce((sum, row) => sum + Number(row.burn_calories ?? 0), 0);
+  const averageBalance = balanceDays.length
+    ? balanceDays.reduce((sum, row) => sum + Number(row.balance), 0) / balanceDays.length
+    : null;
+
+  const confidence = balanceDays.length >= 5
     ? "medium"
-    : balanceDays >= 2
+    : balanceDays.length >= 2
       ? "low"
       : "very_low";
+
+  const note = balanceDays.length === 0
+    ? "No days have both food intake and burn; do not interpret weekly deficit/surplus."
+    : foodDays.length < dayRows.length
+      ? "Weekly balance uses only days with logged food and available burn. Missing food days are excluded, not counted as zero intake."
+      : "Weekly balance uses days with logged food and available burn. Negative balance means estimated deficit.";
 
   return messageResponse([
     "weekly_calorie_balance",
     `range: ${startDate}..${endDate}`,
-    `days_seen: ${allDates.length}`,
-    `days_with_food: ${daysWithFood}`,
-    `days_with_burn: ${daysWithBurn}`,
-    `balance_days: ${balanceDays}`,
-    `total_intake_calories: ${round(totalIntake)}`,
-    `average_intake_calories: ${round(daysWithFood > 0 ? totalIntake / daysWithFood : null)}`,
-    `total_burn_calories: ${round(totalBurn)}`,
-    `average_burn_calories: ${round(daysWithBurn > 0 ? totalBurn / daysWithBurn : null)}`,
-    `average_balance_intake_minus_burn: ${round(balanceDays > 0 ? totalBalance / balanceDays : null)}`,
+    `days_seen: ${dayRows.length}`,
+    `days_with_food: ${foodDays.length}`,
+    `days_with_burn: ${burnDays.length}`,
+    `balance_days: ${balanceDays.length}`,
+    `total_intake_calories_logged_days_only: ${round(totalIntake)}`,
+    `total_burn_calories_available_days_only: ${round(totalBurn)}`,
+    `average_balance_intake_minus_burn: ${round(averageBalance)}`,
     `confidence: ${confidence}`,
-    "note: Weekly balance uses only days with logged food and available burn. Negative balance means estimated deficit.",
+    `note: ${note}`,
   ]);
 }
 
