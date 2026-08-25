@@ -575,7 +575,6 @@
 	
       const r = parseMessage(freshRouter);
 	  const s = parseMessage(snapshot);
-	  const r = parseMessage(freshRouter);
       const d = parseMessage(daily);
       const w = parseMessage(weekly);
       const b = parseMessage(body);
@@ -603,24 +602,10 @@
       document.getElementById("coachNote").textContent = s.vitalis_coach_note || "No coach note yet.";
       document.getElementById("heroRecovery").textContent = valueOrDash(s.vitalis_recovery_score);
       document.getElementById("heroTraining").textContent = valueOrDash(s.vitalis_training_load_score);
-      const snapshotWorkoutCalories = Number(s.workout_total_calories);
-const heroWorkoutCalories = Number.isFinite(snapshotWorkoutCalories)
-  ? snapshotWorkoutCalories
-  : todayWorkoutCalories > 0
-    ? todayWorkoutCalories
-    : null;
-
 const routerWorkoutBurn = Number(r.best_workout_burn_calories);
-const snapshotWorkoutBurn = Number(s.workout_total_calories);
-
-const bestWorkoutBurn = Number.isFinite(routerWorkoutBurn)
-  ? routerWorkoutBurn
-  : Number.isFinite(snapshotWorkoutBurn)
-    ? snapshotWorkoutBurn
-    : null;
 
 document.getElementById("heroWorkoutCalories").textContent =
-  bestWorkoutBurn !== null ? `${bestWorkoutBurn.toFixed(0)} kcal` : "—";
+  Number.isFinite(routerWorkoutBurn) ? `${routerWorkoutBurn.toFixed(0)} kcal` : "—";
 
       document.getElementById("dailyBalance").textContent = balanceText(d.estimated_balance_intake_minus_burn);
       document.getElementById("dailyConfidence").textContent = `Confidence: ${valueOrDash(d.confidence)} · ${valueOrDash(d.burn_method)}`;

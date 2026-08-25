@@ -429,10 +429,20 @@ async function getDailyCalorieBalanceMessage(date: string) {
   const fat = sum(foodRows, "fat_g");
   const fiber = sum(foodRows, "fiber_g");
 
-  const measuredTotalBurn = Number(snapshot?.total_burned_calories);
-  const restingBurn = Number(snapshot?.rest_calories);
-  const workoutBurn = Number(snapshot?.workout_total_calories);
-  const fallbackRestingBurn = 1643;
+function realNumber(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+const measuredTotalBurn = realNumber(snapshot?.total_burned_calories);
+const restingBurn = realNumber(snapshot?.rest_calories);
+const workoutBurn = realNumber(snapshot?.workout_total_calories);
+const fallbackRestingBurn = 1643;
+
+const hasMeasuredTotalBurn = measuredTotalBurn !== null;
+const hasRestingBurn = restingBurn !== null;
+const hasWorkoutBurn = workoutBurn !== null;
 
   let burnCalories = null;
   let burnMethod = "unavailable";
@@ -446,7 +456,7 @@ async function getDailyCalorieBalanceMessage(date: string) {
     burnCalories = restingBurn + workoutBurn;
     burnMethod = "measured_resting_burn_plus_measured_workout_calories";
     confidence = "medium";
-  } else if (Number.isFinite(workoutBurn)) {
+  } else if (hasWorkoutBurn) {
     burnCalories = fallbackRestingBurn + workoutBurn;
     burnMethod = "estimated_resting_burn_plus_measured_workout_calories";
     confidence = "medium";
