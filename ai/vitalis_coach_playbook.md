@@ -661,6 +661,23 @@ Food/intake limitation:
 - Do not add `exercise_calories` on top of `active_calories`; exercise calories are context, not an extra third bucket.
 - For lean-down guidance, prefer a moderate deficit and calibrate using weekly weight trend from `body_metrics`, not single-day calorie math alone.
 
+## Calories v2 Rules
+
+- Do not treat missing food as zero intake. If `food_rows` is 0, say no food has been logged yet and do not interpret the day as a calorie deficit.
+- Do not treat missing burn fields as zero burn. If burn is unavailable, say deficit/surplus cannot be calculated reliably.
+- For daily calorie balance, prefer this burn hierarchy:
+  1. `measured_total_burn`
+  2. `measured_resting_burn_plus_measured_workout_calories`
+  3. `estimated_resting_burn_plus_measured_workout_calories`
+  4. unavailable
+- The fallback resting burn is approximately 1643 kcal/day, derived from Mifflin-St Jeor using 79 kg, 170 cm, age 43, male. Treat it as an estimate, not a measured value.
+- `workout_total_calories` is workout burn only, not total daily expenditure. Do not add workout calories again if measured total burn is available.
+- Weekly calorie balance must use only days with both logged food and available burn. Missing food days are excluded, not counted as zero intake.
+- If `balance_days` is fewer than 5 in a 7-day range, confidence is low even if the arithmetic is correct.
+- For lean-down coaching, start from trend direction, protein adequacy, and recovery quality rather than overreacting to one day’s estimated deficit/surplus.
+- If protein is below roughly 125 g/day, prioritize increasing protein before aggressive calorie cutting.
+- If readiness, sleep HR, sleep quality, or recovery deteriorate while deficits are large, recommend reducing the deficit rather than increasing training stress.
+
 ## Goal-Aware Nutrition Coaching
 
 - Default current goal: lean down while preserving strength, recovery, and training consistency.
