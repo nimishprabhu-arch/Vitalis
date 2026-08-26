@@ -231,6 +231,32 @@ function normalizeFoodIntake(payload: Record<string, unknown>) {
   };
 }
 
+function normalizeFoodIntakePatch(payload: Record<string, unknown>) {
+  const row: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  function addIfPresent(outputName: string, snakeName: string, camelName: string, parser: (value: unknown) => unknown) {
+    if (Object.prototype.hasOwnProperty.call(payload, snakeName) || Object.prototype.hasOwnProperty.call(payload, camelName)) {
+      row[outputName] = parser(pick(payload, snakeName, camelName));
+    }
+  }
+
+  addIfPresent("intake_date", "intake_date", "intakeDate", textOrNull);
+  addIfPresent("meal_type", "meal_type", "mealType", textOrNull);
+  addIfPresent("description", "description", "description", textOrNull);
+  addIfPresent("estimated_calories", "estimated_calories", "estimatedCalories", realOrNull);
+  addIfPresent("protein_g", "protein_g", "proteinG", realOrNull);
+  addIfPresent("carbs_g", "carbs_g", "carbsG", realOrNull);
+  addIfPresent("fat_g", "fat_g", "fatG", realOrNull);
+  addIfPresent("fiber_g", "fiber_g", "fiberG", realOrNull);
+  addIfPresent("assumptions", "assumptions", "assumptions", textOrNull);
+  addIfPresent("confidence", "confidence", "confidence", textOrNull);
+  addIfPresent("source", "source", "source", textOrNull);
+
+  return row;
+}
+
 function normalizeSnapshot(payload: Record<string, unknown>) {
   const snapshotDate = pick(payload, "snapshot_date", "date");
   const savedAt = pick(payload, "saved_at", "savedAt") ?? new Date().toISOString();
@@ -487,6 +513,127 @@ const hasWorkoutBurn = workoutBurn !== null;
     `confidence: ${confidence}`,
     `snapshot_source: ${snapshot?.source ?? "Unavailable"}`,
     `note: ${note}`,
+  ]);
+}
+
+async function getMacroBalanceMessage(date: string, goal = "lean_down") {
+  const foods = await supabaseGet(
+    `food_intake?select=description,meal_type,estimated_calories,protein_g,carbs_g,fat_g,fiber_g&intake_date=eq.${encodeURIComponent(date)}`
+  );
+
+  const foodRows = foods ?? [];
+
+  const calories = sum(foodRows, "estimated_calories");
+  const protein = sum(foodRows, "protein_g");
+  const carbs = sum(foodRows, "carbs_g");
+  const fat = sum(foodRows, "fat_g");
+  const fiber = sum(foodRows, "fiber_g");
+
+  const targets = {
+    lean_down: {
+      calories_min: 1900,
+      calories_max: 2100,
+      protein_min: 130,
+      protein_max: 170,
+      fiber_min: 25,
+      fiber_max: 35,
+      fat_min: 50,
+      fat_max: 75,
+      carbs_min: 130,
+      carbs_max: 220,
+    },
+    maintain: {
+      calories_min: 2200,
+      calories_max: 2400,
+      protein_min: 125,
+      protein_max: 165,
+      fiber_min: 25,
+      fiber_max: 35,
+      fat_min: 55,
+      fat_max: 85,
+      carbs_min: 180,
+      carbs_max: 280,
+    },
+    lean_bulk: {
+      calories_min: 2400,
+      calories_max: 2600,
+      protein_min: 130,
+      protein_max: 175,
+      fiber_min: 25,
+      fiber_max: 40,
+      fat_min: 60,
+      fat_max: 90,
+      carbs_min: 220,
+      carbs_max: 330,
+    },
+    bulk: {
+      calories_min: 2600,
+      calories_max: 2900,
+      protein_min: 130,
+      protein_max: 180,
+      fiber_min: 25,
+      fiber_max: 40,
+      fat_min: 65,
+      fat_max: 100,
+      carbs_min: 260,
+      carbs_max: 380,
+    },
+  };
+
+  const target = targets[goal as keyof typeof targets] ?? targets.lean_down;
+
+  const alcoholCalories = foodRows
+    .filter((row: any) => {
+      const text = `${row.description ?? ""} ${row.meal_type ?? ""}`.toLowerCase();
+      return text.includes("whisky") || text.includes("whiskey") || text.includes("alcohol") || text.includes("beer") || text.includes("wine");
+    })
+    .reduce((total: number, row: any) => total + Number(row.estimated_calories ?? 0), 0);
+
+  function remaining(value: number, minimum: number) {
+    return Math.max(0, minimum - value);
+  }
+
+  function over(value: number, maximum: number) {
+    return Math.max(0, value - maximum);
+  }
+
+  const priority =
+    foodRows.length === 0
+      ? "Log meals first; macro balance cannot be interpreted yet."
+      : protein < target.protein_min
+        ? "Prioritize lean protein next."
+        : fiber < target.fiber_min
+          ? "Prioritize fiber-rich food next."
+          : calories < target.calories_min
+            ? "Calories are still below target range; choose food based on training/recovery."
+            : calories > target.calories_max
+              ? "Calories are above target range; keep remaining intake light."
+              : "Macros are broadly within today’s lean-down range.";
+
+  return messageResponse([
+    "macro_balance",
+    `date: ${date}`,
+    `goal: ${goal}`,
+    `food_rows: ${foodRows.length}`,
+    `calories: ${round(calories)}`,
+    `calories_target_range: ${target.calories_min}-${target.calories_max}`,
+    `calories_remaining_to_min: ${round(remaining(calories, target.calories_min))}`,
+    `calories_over_max: ${round(over(calories, target.calories_max))}`,
+    `protein_g: ${round(protein)}`,
+    `protein_target_range_g: ${target.protein_min}-${target.protein_max}`,
+    `protein_remaining_to_min_g: ${round(remaining(protein, target.protein_min))}`,
+    `fiber_g: ${round(fiber)}`,
+    `fiber_target_range_g: ${target.fiber_min}-${target.fiber_max}`,
+    `fiber_remaining_to_min_g: ${round(remaining(fiber, target.fiber_min))}`,
+    `fat_g: ${round(fat)}`,
+    `fat_guardrail_g: ${target.fat_min}-${target.fat_max}`,
+    `fat_over_max_g: ${round(over(fat, target.fat_max))}`,
+    `carbs_g: ${round(carbs)}`,
+    `carbs_guardrail_g: ${target.carbs_min}-${target.carbs_max}`,
+    `carbs_over_max_g: ${round(over(carbs, target.carbs_max))}`,
+    `alcohol_calories: ${round(alcoholCalories)}`,
+    `priority: ${priority}`,
+    "note: Macro targets are goal-aware estimates, not medical prescriptions. For lean-down, prioritize protein and fiber before strict carb/fat control.",
   ]);
 }
 
@@ -1882,7 +2029,7 @@ if (request.method === "POST" && path === "update-food-intake") {
     );
   }
 
-  const row = normalizeFoodIntake(payload);
+  const row = normalizeFoodIntakePatch(payload);
   const rows = await supabaseUpdateFoodIntake(id, row);
 
   return jsonResponse({
@@ -2040,6 +2187,21 @@ if (path === "daily-calorie-balance-message") {
   }
 
   return await getDailyCalorieBalanceMessage(date);
+}
+
+if (path === "macro-balance-message") {
+  const url = new URL(request.url);
+  const date = url.searchParams.get("date");
+  const goal = url.searchParams.get("goal") ?? "lean_down";
+
+  if (!date) {
+    return messageResponse([
+      "error: missing date parameter",
+      "example: /macro-balance-message?date=2026-08-25&goal=lean_down",
+    ]);
+  }
+
+  return await getMacroBalanceMessage(date, goal);
 }
 
 if (path === "weekly-calorie-balance-message") {
@@ -2384,6 +2546,7 @@ if (path === "sleep-hr-history-message") {
         "/workouts-by-period-message?period=YYYY-MM-DD",
         "/workout-history-message",
 		"/weekly-calorie-balance-message?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD",
+		"/macro-balance-message?date=YYYY-MM-DD&goal=lean_down",
         "/calorie-history-message",
 		"/lab-priority-message",
         "/lab-marker-history-message?marker=LDL",

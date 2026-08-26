@@ -11,61 +11,8 @@
     }
   ],
   "paths": {
-    "/range-message": {
-      "get": {
-        "operationId": "getHealthRangeMessage",
-        "summary": "Get Vitalis health data date range as text",
-        "responses": {
-          "200": {
-            "description": "Health data range message",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/latest-summary-message": {
-      "get": {
-        "operationId": "getLatestSummaryMessage",
-        "summary": "Get latest Vitalis health snapshot as text",
-        "responses": {
-          "200": {
-            "description": "Latest health snapshot message",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/daily-brief-message": {
-      "get": {
-        "operationId": "getDailyBriefMessage",
-        "summary": "Get latest Vitalis daily coach brief as text",
-        "responses": {
-          "200": {
-            "description": "Daily coach brief message",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-	
+    
+
 "/daily-hr-history-message": {
   "get": {
     "operationId": "getDailyHrHistoryMessage",
@@ -250,8 +197,7 @@
 "/update-food-intake": {
   "post": {
     "operationId": "updateFoodIntake",
-    "summary": "Update an existing food intake entry",
-    "description": "Updates an existing food intake row by id. Use this to correct meal description, calories, macros, assumptions, confidence, meal type, or source without deleting and recreating the entry.",
+    "summary": "Update an existing food intake entry by id.",
     "requestBody": {
       "required": true,
       "content": {
@@ -261,20 +207,20 @@
             "required": ["id"],
             "properties": {
               "id": {
-                "type": "string",
-                "description": "Food intake row id to update."
+                "type": "integer",
+                "description": "Existing food intake row id to update."
               },
               "intake_date": {
                 "type": "string",
-                "description": "Meal date in YYYY-MM-DD format."
+                "description": "Date of intake in YYYY-MM-DD format."
               },
               "meal_type": {
                 "type": "string",
-                "description": "Meal label such as breakfast, lunch, dinner, snack, drink, or correction."
+                "description": "Meal label such as breakfast, lunch, dinner, snack, pre_workout, post_workout."
               },
               "description": {
                 "type": "string",
-                "description": "Plain-language meal description."
+                "description": "Food description."
               },
               "estimated_calories": {
                 "type": "number"
@@ -314,11 +260,17 @@
             "schema": {
               "type": "object",
               "properties": {
-                "status": { "type": "string" },
-                "message": { "type": "string" },
+                "status": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
                 "rows": {
                   "type": "array",
-                  "items": { "type": "object" }
+                  "items": {
+                    "type": "object"
+                  }
                 }
               }
             }
@@ -327,8 +279,7 @@
       }
     }
   }
-}
-
+},
 
     "/delete-food-intake": {
       "post": {
@@ -462,6 +413,52 @@
         }
       }
     },
+	
+	"/macro-balance-message": {
+  "get": {
+    "operationId": "getMacroBalanceMessage",
+    "summary": "Get daily macro balance against lean-down target ranges.",
+    "parameters": [
+      {
+        "name": "date",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Date in YYYY-MM-DD format."
+      },
+      {
+        "name": "goal",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "default": "lean_down",
+          "enum": ["lean_down"]
+        },
+        "description": "Goal context for macro targets. Currently supports lean_down."
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Macro balance summary",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},
 
     "/food-daily-summary-message": {
       "get": {
@@ -803,16 +800,15 @@
     }
   }
 },
-
+	
 
 "/fresh-vitalis-summary-message": {
   "get": {
-    "operationId": "getFreshVitalisSummaryMessage",
-    "summary": "Get freshest-source Vitalis summary",
-    "description": "Returns the freshest available Vitalis source per key metric, including snapshot freshness, HR, sleep HR, SpO2, workout freshness, best workout burn, and recommended source-selection rule.",
+    "operationId": "getFreshVitalisSummary",
+    "summary": "Get the freshest reliable Vitalis summary across live metrics.",
     "responses": {
       "200": {
-        "description": "Fresh Vitalis source summary message",
+        "description": "Fresh Vitalis summary",
         "content": {
           "application/json": {
             "schema": {
@@ -828,33 +824,7 @@
       }
     }
   }
-}
-
-"/sync-health-status-message": {
-  "get": {
-    "operationId": "getSyncHealthStatusMessage",
-    "summary": "Get latest synced health metric freshness status",
-    "description": "Returns latest available synced dates for key Health Connect metrics and workouts, so Vitalis can judge whether live data is fresh before giving advice.",
-    "responses": {
-      "200": {
-        "description": "Health sync freshness status message",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "message": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-},	
-
+},
 	
 "/latest-workouts-message": {
   "get": {
