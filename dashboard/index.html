@@ -6,38 +6,40 @@
   <title>Vitalis Command Center</title>
   <style>
     :root {
-      --bg: #f5f3ef;
-      --panel: #ffffff;
-      --ink: #111827;
-      --muted: #6b7280;
-      --line: #e7e0d6;
+      --bg: #0b1020;
+      --panel: rgba(255,255,255,.92);
+      --panel2: rgba(255,255,255,.78);
+      --ink: #071225;
+      --muted: #64748b;
+      --line: rgba(15,23,42,.12);
       --blue: #2563eb;
-      --green: #15803d;
+      --green: #047857;
       --amber: #b45309;
-      --red: #c2410c;
+      --red: #be123c;
       --purple: #6d28d9;
-      --soft-blue: #eff6ff;
-      --soft-green: #ecfdf3;
+      --soft-green: #e8fff3;
       --soft-amber: #fff7ed;
       --soft-red: #fff1f2;
-      --soft-purple: #f5f3ff;
-      --shadow: 0 18px 45px rgba(17, 24, 39, 0.08);
+      --soft-blue: #eff6ff;
+      --shadow: 0 24px 80px rgba(2, 6, 23, .18);
+      --radius: 28px;
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
+      min-height: 100vh;
       font-family: Inter, Segoe UI, Arial, sans-serif;
-      background:
-        radial-gradient(circle at 8% 0%, #dbeafe 0, transparent 30%),
-        radial-gradient(circle at 95% 8%, #fef3c7 0, transparent 26%),
-        var(--bg);
       color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(59,130,246,.35), transparent 30%),
+        radial-gradient(circle at 90% 10%, rgba(245,158,11,.30), transparent 26%),
+        linear-gradient(135deg, #dbeafe 0%, #f8fafc 42%, #fef3c7 100%);
     }
 
     .wrap {
-      max-width: 1380px;
+      max-width: 1500px;
       margin: 0 auto;
       padding: 28px;
     }
@@ -45,26 +47,27 @@
     header {
       display: flex;
       justify-content: space-between;
+      align-items: flex-start;
       gap: 18px;
-      align-items: center;
-      margin-bottom: 18px;
+      margin-bottom: 22px;
     }
 
     h1 {
       margin: 0;
-      font-size: 36px;
-      letter-spacing: -0.05em;
+      font-size: clamp(34px, 4vw, 58px);
+      line-height: .9;
+      letter-spacing: -.07em;
     }
 
     .subtitle {
+      margin-top: 10px;
       color: var(--muted);
-      font-size: 14px;
-      margin-top: 6px;
+      font-weight: 700;
     }
 
-    .header-actions {
+    .actions {
       display: flex;
-      gap: 10px;
+      gap: 12px;
       align-items: center;
       flex-wrap: wrap;
       justify-content: flex-end;
@@ -73,104 +76,177 @@
     button {
       border: 0;
       border-radius: 999px;
-      padding: 12px 16px;
-      background: var(--ink);
+      padding: 14px 20px;
+      background: #071225;
       color: white;
-      font-weight: 900;
+      font-weight: 950;
       cursor: pointer;
       box-shadow: var(--shadow);
     }
 
-    button:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
+    button:disabled { opacity: .55; cursor: not-allowed; }
 
     .status {
-      background: rgba(255,255,255,0.78);
       border: 1px solid var(--line);
+      background: rgba(255,255,255,.74);
+      backdrop-filter: blur(16px);
+      padding: 13px 18px;
       border-radius: 999px;
-      padding: 11px 14px;
       color: var(--muted);
-      font-size: 13px;
-      font-weight: 800;
-      box-shadow: var(--shadow);
+      font-weight: 900;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.3fr .7fr;
+      gap: 20px;
+      margin-bottom: 20px;
     }
 
     .hero {
-      display: grid;
-      grid-template-columns: 1.4fr 0.8fr;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-
-    .hero-card {
-      background: linear-gradient(135deg, #111827, #1f2937);
-      color: white;
-      border-radius: 30px;
-      padding: 26px;
-      box-shadow: var(--shadow);
-      min-height: 260px;
+      min-height: 410px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      border-radius: 36px;
+      background:
+        linear-gradient(145deg, rgba(7,18,37,.98), rgba(30,41,59,.96)),
+        #071225;
+      color: white;
+      padding: 34px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
     }
 
-    .hero-card .muted { color: #d1d5db; }
+    .hero:after {
+      content: "";
+      position: absolute;
+      width: 360px;
+      height: 360px;
+      right: -120px;
+      top: -150px;
+      background: radial-gradient(circle, rgba(37,99,235,.42), transparent 62%);
+    }
 
-    .hero-score {
-      font-size: 54px;
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      font-size: 12px;
+      color: rgba(255,255,255,.58);
       font-weight: 950;
-      letter-spacing: -0.07em;
-      margin: 8px 0;
+      margin-bottom: 16px;
     }
 
-    .hero-note {
-      font-size: 18px;
-      line-height: 1.45;
+    .hero h2 {
+      margin: 0;
+      font-size: clamp(46px, 6vw, 86px);
+      line-height: .88;
+      letter-spacing: -.08em;
       max-width: 850px;
     }
 
-    .hero-grid {
+    .hero-note {
+      margin-top: 18px;
+      font-size: clamp(18px, 2vw, 25px);
+      max-width: 900px;
+      color: rgba(255,255,255,.92);
+    }
+
+    .hero-metrics {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-top: 22px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      position: relative;
+      z-index: 1;
     }
 
-    .hero-metric {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 18px;
-      padding: 13px;
-    }
-
-    .hero-metric span {
-      display: block;
-      color: #d1d5db;
-      font-size: 12px;
-      margin-bottom: 5px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .hero-metric b {
-      font-size: 22px;
-    }
-
-    .card {
-      background: rgba(255,255,255,0.9);
-      border: 1px solid var(--line);
+    .metric-tile {
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.10);
       border-radius: 24px;
       padding: 18px;
-      box-shadow: var(--shadow);
+      min-height: 104px;
     }
+
+    .metric-tile span {
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(255,255,255,.65);
+      font-size: 12px;
+      font-weight: 950;
+      margin-bottom: 10px;
+    }
+
+    .metric-tile b {
+      display: block;
+      color: white;
+      font-size: 30px;
+      letter-spacing: -.04em;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .stack { display: grid; gap: 20px; }
+
+    .title {
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 950;
+      margin-bottom: 12px;
+    }
+
+    .big {
+      font-size: clamp(28px, 3vw, 44px);
+      font-weight: 950;
+      letter-spacing: -.06em;
+      line-height: .95;
+      margin-bottom: 10px;
+    }
+
+    .muted {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 999px;
+      padding: 9px 12px;
+      background: #f1f5f9;
+      color: #334155;
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .chip.fresh { background: var(--soft-green); color: var(--green); }
+    .chip.slight { background: var(--soft-amber); color: var(--amber); }
+    .chip.stale { background: var(--soft-red); color: var(--red); }
 
     .grid {
       display: grid;
       grid-template-columns: repeat(12, 1fr);
-      gap: 16px;
+      gap: 20px;
     }
 
     .span-3 { grid-column: span 3; }
@@ -181,233 +257,202 @@
     .span-8 { grid-column: span 8; }
     .span-12 { grid-column: span 12; }
 
-    .title {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 10px;
-    }
-
-    .big {
-      font-size: 30px;
-      font-weight: 950;
-      letter-spacing: -0.05em;
-      margin-bottom: 8px;
-    }
-
-    .muted {
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.45;
-    }
-
-    .rows {
-      display: grid;
-      gap: 8px;
-      margin-top: 14px;
-    }
-
+    .rows { margin-top: 16px; }
     .row {
       display: flex;
       justify-content: space-between;
-      gap: 12px;
-      padding-top: 8px;
+      gap: 16px;
       border-top: 1px solid var(--line);
-      font-size: 14px;
-    }
-
-    .row span:first-child { color: var(--muted); }
-    .row span:last-child { font-weight: 900; text-align: right; }
-
-    .chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 14px;
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      background: #f3f4f6;
+      padding: 12px 0;
       color: var(--muted);
-      font-size: 13px;
-      font-weight: 900;
     }
 
-    .fresh { color: var(--green); background: var(--soft-green); }
-    .slight { color: var(--amber); background: var(--soft-amber); }
-    .stale { color: var(--red); background: var(--soft-red); }
+    .row strong {
+      color: var(--ink);
+      font-weight: 950;
+      text-align: right;
+    }
 
     .list {
       display: grid;
-      gap: 10px;
-      margin-top: 14px;
+      gap: 12px;
+      margin-top: 16px;
     }
 
     .item {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 12px;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
       align-items: center;
-      padding: 13px;
-      border-radius: 18px;
-      background: #f8fafc;
       border: 1px solid var(--line);
+      background: rgba(248,250,252,.8);
+      border-radius: 18px;
+      padding: 14px;
     }
 
-    .item b {
-      display: block;
-      font-size: 14px;
-      margin-bottom: 4px;
-    }
-
-    .item small {
-      color: var(--muted);
-      line-height: 1.35;
-    }
-
-    .item strong {
-      white-space: normal;
-      text-align: right;
-      font-size: 14px;
-    }
-
-    .lab-item { background: #fff7f4; border-color: #fed7aa; }
-    .lab-item strong { color: var(--red); }
-
-    .workout-item { background: #f5fbff; border-color: #bfdbfe; }
-    .workout-item strong { color: var(--blue); }
-
-    .food-item { background: #f8fff7; border-color: #bbf7d0; }
-    .food-item strong { color: var(--green); }
+    .item b { display: block; font-size: 15px; }
+    .item small { display: block; color: var(--muted); margin-top: 4px; line-height: 1.35; }
+    .item strong { font-size: 15px; text-align: right; }
 
     .focus-list {
       display: grid;
-      gap: 10px;
-      margin-top: 14px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 16px;
     }
 
     .focus {
-      padding: 13px;
-      border-radius: 18px;
-      background: #f9fafb;
       border: 1px solid var(--line);
-      font-size: 14px;
+      background: #fff7ed;
+      border-radius: 18px;
+      padding: 14px;
+      color: #431407;
       line-height: 1.4;
     }
 
-    .focus b { display: block; margin-bottom: 4px; }
-
-    .error {
-      margin-top: 14px;
-      padding: 12px;
-      border-radius: 16px;
-      background: var(--soft-red);
-      color: var(--red);
-      font-size: 13px;
-      font-weight: 800;
-      white-space: pre-wrap;
+    .focus b {
+      display: block;
+      margin-bottom: 5px;
+      color: #7c2d12;
     }
 
-    @media (max-width: 1000px) {
-      .hero { grid-template-columns: 1fr; }
+    details {
+      margin-top: 16px;
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 950;
+      color: var(--muted);
+      list-style: none;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    .error {
+      white-space: pre-wrap;
+      background: var(--soft-red);
+      color: var(--red);
+      padding: 14px;
+      border-radius: 18px;
+      margin-top: 14px;
+      font-weight: 800;
+    }
+
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
+      .hero-metrics { grid-template-columns: repeat(2, 1fr); }
       .span-3, .span-4, .span-5, .span-6, .span-7, .span-8, .span-12 { grid-column: span 12; }
-      header { align-items: flex-start; flex-direction: column; }
-      .hero-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 700px) {
+      .wrap { padding: 18px; }
+      header { flex-direction: column; }
+      .hero { padding: 24px; min-height: 360px; }
+      .hero-metrics { grid-template-columns: 1fr; }
+      .focus-list { grid-template-columns: 1fr; }
+      .item { grid-template-columns: 1fr; }
+      .item strong { text-align: left; }
     }
   </style>
 </head>
-
 <body>
   <div class="wrap">
     <header>
       <div>
-        <h1>Vitalis Command Center</h1>
-        <div class="subtitle" id="dateLabel">Loading today’s signal map…</div>
+        <h1>Vitalis<br>Command Center</h1>
+        <div class="subtitle" id="dateLabel">Loading signal map…</div>
       </div>
-      <div class="header-actions">
+      <div class="actions">
         <button id="refreshButton" type="button">Refresh</button>
         <div class="status" id="topStatus">Loading…</div>
       </div>
     </header>
 
-    <section class="hero">
-      <div class="hero-card">
+    <section class="layout">
+      <div class="hero">
         <div>
-          <div class="title">Today’s Read</div>
-          <div class="hero-score" id="todayReadiness">—</div>
+          <div class="eyebrow">Today’s Read</div>
+          <h2 id="todayReadiness">Awaiting signal</h2>
           <div class="hero-note" id="coachNote">Loading coach note…</div>
         </div>
-        <div class="hero-grid">
-          <div class="hero-metric"><span>Recovery</span><b id="heroRecovery">—</b></div>
-          <div class="hero-metric"><span>Training Load</span><b id="heroTraining">—</b></div>
-          <div class="hero-metric"><span>Workout Burn</span><b id="heroWorkoutCalories">—</b></div>
+        <div class="hero-metrics">
+          <div class="metric-tile"><span>Recovery</span><b id="heroRecovery">—</b></div>
+          <div class="metric-tile"><span>Training Load</span><b id="heroTraining">—</b></div>
+          <div class="metric-tile"><span>Workout Burn</span><b id="heroWorkoutCalories">—</b></div>
+          <div class="metric-tile"><span>Source</span><b id="heroSource">—</b></div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="title">Freshness Watchdog</div>
-        <div class="big" id="freshHeadline">Checking…</div>
-        <div class="muted">Fresh means 0–1 days behind. Sleep and SpO₂ can be slightly delayed; investigate only if 4+ days behind.</div>
-        <div class="chips" id="freshnessChips"></div>
+      <div class="stack">
+        <section class="panel">
+          <div class="title">Freshness Watchdog</div>
+          <div class="big" id="freshHeadline">Checking…</div>
+          <div class="muted">Fresh means 0–1 days behind. Sleep and SpO₂ can be slightly delayed; investigate only if 4+ days behind.</div>
+          <div class="chips" id="freshnessChips"></div>
+        </section>
+
+        <section class="panel">
+          <div class="title">Body Metrics</div>
+          <div class="big" id="bodyWeight">—</div>
+          <div class="muted" id="bodyBp">Loading body trend…</div>
+          <div class="chips"><span class="chip" id="bodyReminder">Checking reminder…</span></div>
+          <div class="rows" id="bodyRows"></div>
+        </section>
       </div>
     </section>
 
     <main class="grid">
-      <section class="card span-4">
+      <section class="panel span-4">
         <div class="title">Daily Calories</div>
         <div class="big" id="dailyBalance">—</div>
         <div class="muted" id="dailyConfidence">Loading calorie balance…</div>
         <div class="rows" id="dailyRows"></div>
       </section>
 
-      <section class="card span-4">
-        <div class="title">Today’s Food</div>
-        <div class="big" id="foodCount">—</div>
-        <div class="muted" id="foodSummary">Loading meals…</div>
-        <div class="list" id="foodRows"></div>
+      <section class="panel span-4">
+        <div class="title">Macro Gaps</div>
+        <div class="big" id="macroHeadline">—</div>
+        <div class="muted" id="macroPriority">Loading macros…</div>
+        <div class="rows" id="macroRows"></div>
       </section>
 
-      <section class="card span-4">
+      <section class="panel span-4">
         <div class="title">Weekly Calories</div>
         <div class="big" id="weeklyBalance">—</div>
         <div class="muted" id="weeklyConfidence">Loading week…</div>
         <div class="rows" id="weeklyRows"></div>
       </section>
 
-      <section class="card span-4">
-        <div class="title">Body Metrics</div>
-        <div class="big" id="bodyWeight">—</div>
-        <div class="muted" id="bodyBp">Loading body trend…</div>
-        <div class="chips"><span class="chip" id="bodyReminder">Checking reminder…</span></div>
-        <div class="rows" id="bodyRows"></div>
+      <section class="panel span-5">
+        <div class="title">Today’s Food</div>
+        <div class="big" id="foodCount">—</div>
+        <div class="muted" id="foodSummary">Loading meals…</div>
+        <div class="list" id="foodRows"></div>
       </section>
 
-      <section class="card span-8">
+      <section class="panel span-7">
         <div class="title">Today’s Focus Queue</div>
         <div class="big" id="focusHeadline">Building plan…</div>
-        <div class="muted">Generated from freshness, calories, workouts, body metrics and lab priorities.</div>
+        <div class="muted">Generated from freshness, calories, macros, workouts, body metrics, and lab priorities.</div>
         <div class="focus-list" id="focusRows"></div>
       </section>
 
-      <section class="card span-6">
-        <div class="title">Lab Priorities</div>
-        <div class="big" id="labHeadline">—</div>
-        <div class="muted">Abnormal markers that deserve follow-up, not panic.</div>
-        <div class="list" id="labRows"></div>
-      </section>
-
-      <section class="card span-6">
+      <section class="panel span-6">
         <div class="title">Latest Workouts</div>
         <div class="big" id="workoutHeadline">—</div>
         <div class="muted">Detailed workout rows from Vitalis live data.</div>
         <div class="list" id="workoutRows"></div>
+      </section>
+
+      <section class="panel span-6">
+        <div class="title">Lab Priorities</div>
+        <div class="big" id="labHeadline">—</div>
+        <div class="muted">Collapsed by default because labs do not change daily.</div>
+        <details open>
+          <summary>Show priority markers</summary>
+          <div class="list" id="labRows"></div>
+        </details>
       </section>
     </main>
   </div>
@@ -461,11 +506,18 @@
     }
 
     function valueOrDash(value) {
-      return value === null || value === undefined || value === "null" || value === "" ? "—" : value;
+      return value === null || value === undefined || value === "null" || value === "" || value === "Unavailable" ? "—" : value;
     }
 
     function row(label, value) {
-      return `<div class="row"><span>${label}</span><span>${valueOrDash(value)}</span></div>`;
+      return `<div class="row"><span>${label}</span><strong>${valueOrDash(value)}</strong></div>`;
+    }
+
+    function shortSource(source) {
+      if (!source || source === "Unavailable") return "—";
+      if (source.includes("health_connect")) return "HC";
+      if (source.includes("android")) return "App";
+      return source;
     }
 
     function prettySignalName(name) {
@@ -479,13 +531,6 @@
       }[name] || name;
     }
 
-    function statusClass(text) {
-      if (String(text).includes("status: stale")) return "stale";
-      if (String(text).includes("status: slightly_stale")) return "slight";
-      if (String(text).includes("status: fresh")) return "fresh";
-      return "";
-    }
-
     function prettyFreshnessLine(line) {
       const name = line.split(": ")[0];
       const date = line.match(/: ([^;]+)/)?.[1] || "Unavailable";
@@ -495,7 +540,7 @@
 
       if (status === "fresh" && lag === "0") return `<span class="chip fresh"><b>${label}</b> · today</span>`;
       if (status === "fresh") return `<span class="chip fresh"><b>${label}</b> · ${lag} day behind · ${date}</span>`;
-      if (status === "slightly_stale") return `<span class="chip slight"><b>${label}</b> · ${lag} days behind · ${date}</span>`;
+      if (status === "slightly_stale") return `<span class="chip slight"><b>${label}</b> · slightly delayed · ${lag} days behind · ${date}</span>`;
       if (status === "stale") return `<span class="chip stale"><b>${label}</b> · stale · ${lag} days behind · ${date}</span>`;
       return `<span class="chip"><b>${label}</b> · unavailable</span>`;
     }
@@ -508,11 +553,11 @@
       return "Balanced";
     }
 
-    function nextMondayText() {
+    function nextSundayText() {
       const date = new Date();
       const day = date.getDay();
-      const daysUntilMonday = (8 - day) % 7 || 7;
-      date.setDate(date.getDate() + daysUntilMonday);
+      const daysUntilSunday = (7 - day) % 7 || 7;
+      date.setDate(date.getDate() + daysUntilSunday);
       return localDate(date);
     }
 
@@ -520,34 +565,34 @@
       return `<div class="error">${message}</div>`;
     }
 
-    function buildFocusItems(snapshot, daily, body, labLines, freshness) {
+    function buildFocusItems(snapshot, daily, macro, body, labLines, freshness) {
       const items = [];
-
       const readiness = num(snapshot.vitalis_readiness_score);
       const balance = num(daily.estimated_balance_intake_minus_burn);
-      const protein = num(daily.protein_g);
+      const proteinGap = num(macro.protein_remaining_to_min_g);
+      const fiberGap = num(macro.fiber_remaining_to_min_g);
       const staleCount = freshness.split("\n").filter(line => line.includes("status: stale")).length;
 
       if (labLines.some(line => line.includes("GGT"))) {
-        items.push(["Liver follow-up", "GGT is a priority marker. Keep alcohol/supplement risk low and keep clinician follow-up on the board."]);
+        items.push(["Liver follow-up", "GGT remains a priority. Keep alcohol low/zero and keep clinician follow-up on the board."]);
       }
 
-      if (labLines.some(line => line.includes("LDL") || line.includes("Cholesterol"))) {
-        items.push(["Lipids", "Keep meals LDL-friendly: more soluble fiber, less saturated-fat-heavy food, consistent training."]);
+      if (proteinGap !== null && proteinGap > 0) {
+        items.push(["Protein", `Close about ${proteinGap.toFixed(0)}g protein before the day ends.`]);
+      }
+
+      if (fiberGap !== null && fiberGap > 0) {
+        items.push(["Fiber", `Add about ${fiberGap.toFixed(0)}g fiber using dal, legumes, vegetables, fruit, or whole grains.`]);
       }
 
       if (balance !== null) {
-        items.push(["Calories", balance < 0 ? `You are tracking a ${Math.abs(balance).toFixed(0)} kcal deficit today.` : `You are tracking a ${balance.toFixed(0)} kcal surplus today.`]);
+        items.push(["Calories", balance < 0 ? `Current estimated deficit is ${Math.abs(balance).toFixed(0)} kcal.` : `Current estimated surplus is ${balance.toFixed(0)} kcal.`]);
       } else {
-        items.push(["Calories", "Log meals and wait for burn data before reading today’s energy balance."]);
-      }
-
-      if (protein !== null && protein < 125) {
-        items.push(["Protein", `Protein is ${protein}g so far. Lean-down target is roughly 125–175g/day.`]);
+        items.push(["Calories", "Burn is incomplete, so use intake range and macro gaps rather than exact deficit."]);
       }
 
       if (readiness !== null) {
-        items.push(["Training", readiness >= 80 ? "Recovery looks supportive. A structured workout fits if schedule allows." : "Keep training lighter if energy or soreness feels off."]);
+        items.push(["Training", readiness >= 80 ? "Recovery supports training if schedule allows." : "Keep training lighter if soreness or energy feels off."]);
       }
 
       if (staleCount > 0) {
@@ -561,21 +606,23 @@
       document.getElementById("topStatus").textContent = "Refreshing…";
       document.getElementById("refreshButton").disabled = true;
 
-      const [freshRouter, freshness, snapshot, daily, foodHistory, weekly, body, labs, workouts] = await Promise.all([
-		safeMessage("/fresh-vitalis-summary-message"),
+      const [freshRouter, freshness, snapshot, daily, macro, foodHistory, weekly, body, labs, workouts] = await Promise.all([
+        safeMessage("/fresh-vitalis-summary-message"),
         safeMessage("/freshness-watchdog-message"),
         safeMessage(`/snapshot-message?date=${today}`),
         safeMessage(`/daily-calorie-balance-message?date=${today}`),
+        safeMessage(`/macro-balance-message?date=${today}&goal=lean_down`),
         safeMessage("/food-intake-history-message"),
         safeMessage(`/weekly-calorie-balance-message?start_date=${weekStart}&end_date=${today}`),
         safeMessage("/body-metrics-trend-message"),
         safeMessage("/lab-priority-message"),
         safeMessage("/latest-workouts-message"),
       ]);
-	
+
       const r = parseMessage(freshRouter);
-	  const s = parseMessage(snapshot);
+      const s = parseMessage(snapshot);
       const d = parseMessage(daily);
+      const m = parseMessage(macro);
       const w = parseMessage(weekly);
       const b = parseMessage(body);
 
@@ -583,10 +630,10 @@
       const staleCount = freshnessLines.filter(line => line.includes("status: stale")).length;
       const slightCount = freshnessLines.filter(line => line.includes("status: slightly_stale")).length;
 
-   document.getElementById("freshHeadline").textContent =
-  staleCount ? `${staleCount} signal${staleCount > 1 ? "s are" : " is"} stale` :
-  slightCount ? "Signals mostly fresh" :
-  "Signals look fresh";
+      document.getElementById("freshHeadline").textContent =
+        staleCount ? `${staleCount} signal${staleCount > 1 ? "s are" : " is"} stale` :
+        slightCount ? "Signals mostly fresh" :
+        "Signals look fresh";
 
       document.getElementById("freshnessChips").innerHTML =
         freshnessLines.length ? freshnessLines.map(prettyFreshnessLine).join("") : errorBox(freshness);
@@ -598,25 +645,35 @@
         : readiness >= 70 ? "Ready with care"
         : "Recovery-first";
 
-const isTodaySnapshot = s.snapshot_date === today;
-const routerWorkoutBurn = Number(r.best_workout_burn_calories);
-const routerWorkoutDate = r.latest_workout_snapshot_date;
+      const isTodaySnapshot = s.snapshot_date === today;
+      const routerWorkoutBurn = Number(r.best_workout_burn_calories);
+      const routerWorkoutDate = r.latest_workout_snapshot_date;
 
-document.getElementById("todayReadiness").textContent = isTodaySnapshot ? todayMood : "Awaiting signal";
-document.getElementById("coachNote").textContent = isTodaySnapshot ? (s.vitalis_coach_note || "No coach note yet.") : "Today's snapshot has not arrived yet.";
-document.getElementById("heroRecovery").textContent = isTodaySnapshot ? valueOrDash(s.vitalis_recovery_score) : "—";
-document.getElementById("heroTraining").textContent = isTodaySnapshot ? valueOrDash(s.vitalis_training_load_score) : "—";
-document.getElementById("heroWorkoutCalories").textContent =
-  routerWorkoutDate === today && Number.isFinite(routerWorkoutBurn)
-    ? `${routerWorkoutBurn.toFixed(0)} kcal`
-    : "—";
+      document.getElementById("todayReadiness").textContent = isTodaySnapshot ? todayMood : "Awaiting signal";
+      document.getElementById("coachNote").textContent = isTodaySnapshot ? (s.vitalis_coach_note || "No coach note yet.") : "Today's snapshot has not arrived yet.";
+      document.getElementById("heroRecovery").textContent = isTodaySnapshot ? valueOrDash(s.vitalis_recovery_score) : "—";
+      document.getElementById("heroTraining").textContent = isTodaySnapshot ? valueOrDash(s.vitalis_training_load_score) : "—";
+      document.getElementById("heroWorkoutCalories").textContent =
+        routerWorkoutDate === today && Number.isFinite(routerWorkoutBurn)
+          ? `${routerWorkoutBurn.toFixed(0)} kcal`
+          : "—";
+      document.getElementById("heroSource").textContent = isTodaySnapshot ? shortSource(s.source || r.latest_snapshot_source) : "—";
+
       document.getElementById("dailyBalance").textContent = balanceText(d.estimated_balance_intake_minus_burn);
       document.getElementById("dailyConfidence").textContent = `Confidence: ${valueOrDash(d.confidence)} · ${valueOrDash(d.burn_method)}`;
       document.getElementById("dailyRows").innerHTML =
-        row("Intake", d.intake_calories) +
-        row("Burn", d.burn_calories) +
+        row("Intake", `${valueOrDash(d.intake_calories)} kcal`) +
+        row("Burn", `${valueOrDash(d.burn_calories)} kcal`) +
         row("Protein", `${valueOrDash(d.protein_g)} g`) +
         row("Food rows", d.food_rows);
+
+      document.getElementById("macroHeadline").textContent = valueOrDash(m.priority);
+      document.getElementById("macroPriority").textContent = `Goal: ${valueOrDash(m.goal)} · calories ${valueOrDash(m.calories_target_range)}`;
+      document.getElementById("macroRows").innerHTML =
+        row("Protein remaining", `${valueOrDash(m.protein_remaining_to_min_g)} g`) +
+        row("Fiber remaining", `${valueOrDash(m.fiber_remaining_to_min_g)} g`) +
+        row("Calories over max", `${valueOrDash(m.calories_over_max)} kcal`) +
+        row("Alcohol calories", `${valueOrDash(m.alcohol_calories)} kcal`);
 
       const todayFoodLines = foodHistory.split("\n").filter(line => line.startsWith(`date: ${today};`));
       document.getElementById("foodCount").textContent = `${todayFoodLines.length} meal${todayFoodLines.length === 1 ? "" : "s"}`;
@@ -626,9 +683,9 @@ document.getElementById("heroWorkoutCalories").textContent =
         const description = line.match(/description: ([^;]+)/)?.[1] || "—";
         const calories = line.match(/calories: ([^;]+)/)?.[1] || "—";
         const protein = line.match(/protein_g: ([^;]+)/)?.[1] || "—";
-        return `<div class="item food-item">
+        return `<div class="item">
           <div><b>${meal}</b><small>${description}</small></div>
-          <strong>${calories} kcal · ${protein}g protein</strong>
+          <strong>${calories} kcal<br>${protein}g protein</strong>
         </div>`;
       }).join("") || "<div class='muted'>No food logged today.</div>";
 
@@ -637,57 +694,55 @@ document.getElementById("heroWorkoutCalories").textContent =
       document.getElementById("weeklyRows").innerHTML =
         row("Days with food", w.days_with_food) +
         row("Days with burn", w.days_with_burn) +
-        row("Avg intake", w.average_intake_calories) +
-        row("Avg burn", w.average_burn_calories);
+        row("Avg intake", `${valueOrDash(w.average_intake_calories)} kcal`) +
+        row("Avg burn", `${valueOrDash(w.average_burn_calories)} kcal`);
 
       document.getElementById("bodyWeight").textContent = b.latest_weight_kg ? `${b.latest_weight_kg} kg` : "No weight";
       document.getElementById("bodyBp").textContent = b.latest_bp ? `Latest BP: ${b.latest_bp}` : "No BP logged";
       const latestBodyDate = b.latest_weight_date || b.latest_bp_date || "Unavailable";
-      const isMonday = new Date().getDay() === 1;
+      const isSunday = new Date().getDay() === 0;
       document.getElementById("bodyReminder").textContent =
-        `${isMonday ? "Body check-in due today" : `Next body check-in: ${nextMondayText()}`} · latest: ${latestBodyDate}`;
+        `${isSunday ? "Body check-in due today" : `Next body check-in: ${nextSundayText()}`} · latest: ${latestBodyDate}`;
       document.getElementById("bodyRows").innerHTML =
         row("Weight change", `${valueOrDash(b.weight_change_kg)} kg`) +
         row("Avg systolic BP", b.average_systolic_bp) +
         row("Avg diastolic BP", b.average_diastolic_bp) +
         row("Confidence", b.confidence);
 
-      const labLines = labs.split("\n").filter(line => line.startsWith("date:")).slice(0, 6);
+      const labLines = labs.split("\n").filter(line => line.startsWith("priority:")).slice(0, 6);
       document.getElementById("labHeadline").textContent = `${labLines.length} priorit${labLines.length === 1 ? "y" : "ies"}`;
       document.getElementById("labRows").innerHTML = labLines.map(line => {
+        const priority = line.match(/priority: ([^;]+)/)?.[1] || "—";
         const date = line.match(/date: ([^;]+)/)?.[1] || "—";
         const category = line.match(/category: ([^;]+)/)?.[1] || "Lab";
         const marker = line.match(/marker: ([^;]+)/)?.[1] || "Marker";
         const value = line.match(/value: ([^;]+)/)?.[1] || "—";
-        const flag = line.match(/flag: ([^;]+)/)?.[1] || "flagged";
-        return `<div class="item lab-item">
-          <div><b>${marker}</b><small>${category} · ${date} · ${flag}</small></div>
+        const action = line.match(/action: ([^;]+)/)?.[1] || "";
+        return `<div class="item">
+          <div><b>#${priority} · ${marker}</b><small>${category} · ${date}<br>${action}</small></div>
           <strong>${value}</strong>
         </div>`;
       }).join("") || "<div class='muted'>No active lab priorities found.</div>";
 
-      const allWorkoutLines = workouts.split("\n").filter(line => line.startsWith("date:"));
-	const todayWorkoutLines = allWorkoutLines.filter(line => line.startsWith(`date: ${today};`));
-	const workoutLines = allWorkoutLines.slice(0, 8);
-
-const todayWorkoutCalories = todayWorkoutLines
-  .map(line => Number(line.match(/calories: ([^;]+)/)?.[1]))
-  .filter(value => Number.isFinite(value))
-  .reduce((sum, value) => sum + value, 0);
-      document.getElementById("workoutHeadline").textContent = `${workoutLines.length} recent session${workoutLines.length === 1 ? "" : "s"}`;
+      const workoutLines = workouts.split("\n").filter(line => line.startsWith("date:")).slice(0, 8);
+      const todayWorkoutLines = workoutLines.filter(line => line.startsWith(`date: ${today};`));
+      document.getElementById("workoutHeadline").textContent =
+        todayWorkoutLines.length
+          ? `${todayWorkoutLines.length} today`
+          : `${workoutLines.length} recent session${workoutLines.length === 1 ? "" : "s"}`;
       document.getElementById("workoutRows").innerHTML = workoutLines.map(line => {
         const date = line.match(/date: ([^;]+)/)?.[1] || "—";
         const type = line.match(/type: ([^;]+)/)?.[1] || "Workout";
         const duration = line.match(/duration_minutes: ([^;]+)/)?.[1] || "—";
         const calories = line.match(/calories: ([^;]+)/)?.[1] || "—";
         const avgHr = line.match(/average_heart_rate: ([^;]+)/)?.[1] || "—";
-        return `<div class="item workout-item">
+        return `<div class="item">
           <div><b>${type}</b><small>${date} · ${duration} min · avg HR ${avgHr}</small></div>
           <strong>${calories} kcal</strong>
         </div>`;
       }).join("") || "<div class='muted'>No recent workouts found.</div>";
 
-      const focusItems = buildFocusItems(s, d, b, labLines, freshness);
+      const focusItems = buildFocusItems(s, d, m, b, labLines, freshness);
       document.getElementById("focusHeadline").textContent = `${focusItems.length} moves for today`;
       document.getElementById("focusRows").innerHTML = focusItems.map(([title, text]) =>
         `<div class="focus"><b>${title}</b>${text}</div>`
