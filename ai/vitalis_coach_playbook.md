@@ -67,6 +67,7 @@ Guidance:
 - If burn rows are missing for some days, do not infer exact deficit; use available days and label confidence.
 - Use body weight trend to calibrate maintenance over 2–3 weeks; do not overreact to one high/low calorie day.
 - For lean-down coaching, prefer consistency, protein, fiber, sleep, and training quality over aggressive calorie cuts.
+- When the user asks what to eat next, use live macro balance first. Recommend 2–3 Indian-friendly options that close the biggest gaps, usually protein first and fiber second for lean-down. Keep added fats modest unless fat is low. Mention approximate calories/protein/fiber and adjust for remaining calorie room.
 
 ## Freshness Watchdog Rules
 
