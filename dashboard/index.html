@@ -354,7 +354,7 @@
       <div class="card">
         <div class="title">Freshness Watchdog</div>
         <div class="big" id="freshHeadline">Checking…</div>
-        <div class="muted">Fresh means 0–1 days behind. Slightly stale means 2–3 days behind.</div>
+        <div class="muted">Fresh means 0–1 days behind. Sleep and SpO₂ can be slightly delayed; investigate only if 4+ days behind.</div>
         <div class="chips" id="freshnessChips"></div>
       </div>
     </section>
@@ -583,10 +583,10 @@
       const staleCount = freshnessLines.filter(line => line.includes("status: stale")).length;
       const slightCount = freshnessLines.filter(line => line.includes("status: slightly_stale")).length;
 
-      document.getElementById("freshHeadline").textContent =
-        staleCount ? `${staleCount} stale signal${staleCount > 1 ? "s" : ""}` :
-        slightCount ? `${slightCount} slightly stale signal${slightCount > 1 ? "s" : ""}` :
-        "Signals look fresh";
+   document.getElementById("freshHeadline").textContent =
+  staleCount ? `${staleCount} signal${staleCount > 1 ? "s are" : " is"} stale` :
+  slightCount ? "Signals mostly fresh" :
+  "Signals look fresh";
 
       document.getElementById("freshnessChips").innerHTML =
         freshnessLines.length ? freshnessLines.map(prettyFreshnessLine).join("") : errorBox(freshness);
@@ -598,15 +598,18 @@
         : readiness >= 70 ? "Ready with care"
         : "Recovery-first";
 
-      document.getElementById("todayReadiness").textContent = todayMood;
-      document.getElementById("coachNote").textContent = s.vitalis_coach_note || "No coach note yet.";
-      document.getElementById("heroRecovery").textContent = valueOrDash(s.vitalis_recovery_score);
-      document.getElementById("heroTraining").textContent = valueOrDash(s.vitalis_training_load_score);
+const isTodaySnapshot = s.snapshot_date === today;
 const routerWorkoutBurn = Number(r.best_workout_burn_calories);
+const routerWorkoutDate = r.latest_workout_snapshot_date;
 
+document.getElementById("todayReadiness").textContent = isTodaySnapshot ? todayMood : "Awaiting signal";
+document.getElementById("coachNote").textContent = isTodaySnapshot ? (s.vitalis_coach_note || "No coach note yet.") : "Today's snapshot has not arrived yet.";
+document.getElementById("heroRecovery").textContent = isTodaySnapshot ? valueOrDash(s.vitalis_recovery_score) : "—";
+document.getElementById("heroTraining").textContent = isTodaySnapshot ? valueOrDash(s.vitalis_training_load_score) : "—";
 document.getElementById("heroWorkoutCalories").textContent =
-  Number.isFinite(routerWorkoutBurn) ? `${routerWorkoutBurn.toFixed(0)} kcal` : "—";
-
+  routerWorkoutDate === today && Number.isFinite(routerWorkoutBurn)
+    ? `${routerWorkoutBurn.toFixed(0)} kcal`
+    : "—";
       document.getElementById("dailyBalance").textContent = balanceText(d.estimated_balance_intake_minus_burn);
       document.getElementById("dailyConfidence").textContent = `Confidence: ${valueOrDash(d.confidence)} · ${valueOrDash(d.burn_method)}`;
       document.getElementById("dailyRows").innerHTML =
