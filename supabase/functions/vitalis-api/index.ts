@@ -1578,20 +1578,75 @@ async function getLatestLabsSummaryMessage() {
 
 async function getLabPriorityMessage() {
   const rows = await supabaseGet(
-    "medical_lab_results?select=test_date,category,marker,value,unit,reference_low,reference_high,flag,source_file&flag=neq.normal&order=test_date.desc&limit=50"
+    "medical_lab_results?select=test_date,category,marker,value,unit,reference_low,reference_high,flag,source_file&flag=neq.normal&order=test_date.desc&limit=80"
   );
 
   if (!rows || rows.length === 0) {
     return messageResponse(["lab_priority", "No abnormal lab priorities found."]);
   }
 
+  function priorityFor(row: any) {
+    const marker = String(row.marker ?? "").toLowerCase();
+    const category = String(row.category ?? "").toLowerCase();
+
+    if (marker === "ggt") return "1";
+    if (marker === "ldl" || marker === "total cholesterol") return "2";
+    if (marker === "hemoglobin" || marker === "hematocrit" || marker === "rbc") return "3";
+    if (category === "liver") return "4";
+    return "5";
+  }
+
+  function dueHint(row: any) {
+    const marker = String(row.marker ?? "").toLowerCase();
+    const category = String(row.category ?? "").toLowerCase();
+
+    if (marker === "ggt" || category === "liver") {
+      return "repeat liver panel/GGT with clinician guidance; priority soon because GGT is markedly high";
+    }
+
+    if (marker === "ldl" || marker === "total cholesterol") {
+      return "repeat lipid panel after 8-12 weeks of consistent nutrition/training changes";
+    }
+
+    if (marker === "hemoglobin" || marker === "hematocrit" || marker === "rbc") {
+      return "repeat CBC and discuss persistent elevation with clinician";
+    }
+
+    return "review timing with clinician based on symptoms, history, and repeat trend";
+  }
+
+  function actionHint(row: any) {
+    const marker = String(row.marker ?? "").toLowerCase();
+    const category = String(row.category ?? "").toLowerCase();
+
+    if (marker === "ggt" || category === "liver") {
+      return "avoid alcohol, review medications/supplements, keep meals minimally processed, prioritize clinician follow-up";
+    }
+
+    if (marker === "ldl" || marker === "total cholesterol") {
+      return "increase soluble fiber, legumes/dal/vegetables, lean protein, unsaturated fats; reduce saturated-fat-heavy foods";
+    }
+
+    if (marker === "hemoglobin" || marker === "hematocrit" || marker === "rbc") {
+      return "stay normally hydrated, avoid assuming dehydration explains it, track repeat CBC";
+    }
+
+    return "maintain healthy baseline habits and verify result against source report";
+  }
+
+  const priorityRows = rows
+    .slice()
+    .sort((a: any, b: any) => Number(priorityFor(a)) - Number(priorityFor(b)))
+    .slice(0, 12);
+
   return messageResponse([
     "lab_priority",
-    `rows: ${rows.length}`,
-    ...rows.map((row: any) =>
-      `date: ${row.test_date}; category: ${row.category}; marker: ${row.marker}; value: ${row.value} ${row.unit ?? ""}; reference: ${row.reference_low ?? "Unavailable"}-${row.reference_high ?? "Unavailable"}; flag: ${row.flag}; source_file: ${row.source_file}`
+    `rows: ${priorityRows.length}`,
+    ...priorityRows.map((row: any) =>
+      `priority: ${priorityFor(row)}; date: ${row.test_date}; category: ${row.category}; marker: ${row.marker}; value: ${row.value} ${row.unit ?? ""}; reference: ${row.reference_low ?? "Unavailable"}-${row.reference_high ?? "Unavailable"}; flag: ${row.flag}; due_next: ${dueHint(row)}; action: ${actionHint(row)}; source_file: ${row.source_file}`
     ),
-    "note: Prioritize repeated, high-severity, or clinically important abnormalities. Verify source reports for medical decisions.",
+    "rule: Rank clinically important and repeated abnormalities first. Use due_next for test timing and action for daily/weekly coaching.",
+    "note: Not a diagnosis. Verify source reports and clinician guidance for medical decisions.",
   ]);
 }
 
